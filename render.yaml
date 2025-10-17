@@ -14,11 +14,6 @@ services:
         fromDatabase:
           name: deklutter-db
           property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: deklutter-redis
-          property: connectionString
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -30,29 +25,9 @@ services:
       - key: APP_SECRET
         generateValue: true
 
-  # PostgreSQL Database
-  - type: pserv
-    name: deklutter-db
-    env: docker
+databases:
+  # PostgreSQL Database (Free Tier)
+  - name: deklutter-db
+    databaseName: deklutter
+    user: deklutter_user
     plan: free
-    region: oregon
-    image:
-      url: postgres:16-alpine
-    disk:
-      name: deklutter-db-data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 1
-    envVars:
-      - key: POSTGRES_USER
-        value: deklutter_user
-      - key: POSTGRES_PASSWORD
-        generateValue: true
-      - key: POSTGRES_DB
-        value: deklutter
-
-  # Redis Cache
-  - type: redis
-    name: deklutter-redis
-    region: oregon
-    plan: free
-    maxmemoryPolicy: allkeys-lru
