@@ -1,0 +1,77 @@
+import logging
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from db.session import get_db
+from db.models import OAuthToken, MailDecisionLog
+from services.gateway.deps import CurrentUser
+from services.gmail_connector.oauth import _fernet, get_gmail_service
+from services.classifier.policy import classify_bulk
+
+logger = logging.getLogger(__name__)
+
+def _get_token(db: Session, user: CurrentUser) -> OAuthToken | None:
+    return db.query(OAuthToken).filter(OAuthToken.user_id==user.user_id, OAuthToken.provider=="google").order_by(OAuthToken.id.desc()).first()
+
+def scan_recent(user: CurrentUser, days_back: int, limit: int, db: Session = next(get_db())):
+    tok = _get_token(db, user)
+    if not tok: return {"error":"not_authorized"}
+    f = _fernet()
+    service = get_gmail_service(f.decrypt(tok.access_token).decode(), f.decrypt(tok.refresh_token).decode() or None, tok.expiry)
+
+    logger.info(f"Scanning Gmail for user_id={user.user_id}, days_back={days_back}, limit={limit}")
+    
+    msgs_meta = []
+    resp = service.users().messages().list(userId="me", maxResults=min(100, limit)).execute()
+    
+    ids = [m["id"] for m in resp.get("messages", [])]
+    logger.info(f"Found {len(ids)} messages for user_id={user.user_id}")
+    for mid in ids:
+        m = service.users().messages().get(userId="me", id=mid, format="metadata", metadataHeaders=["Subject","From","Date"]).execute()
+        size = m.get("sizeEstimate", 0)
+        labels = m.get("labelIds", [])
+        headers = {h["name"]:h["value"] for h in m.get("payload",{}).get("headers",[])}
+        msgs_meta.append({
+            "id": mid,
+            "from": headers.get("From",""),
+            "subject": headers.get("Subject",""),
+            "date": headers.get("Date",""),
+            "labels": labels,
+            "size": size
+        })
+
+    plan = classify_bulk(msgs_meta)
+    # persist preview log (not applied)
+    for it in plan["items"]:
+        db.add(MailDecisionLog(
+            user_id=user.user_id,
+            message_id=it["id"],
+            sender_hash=it["sender_hash"],
+            subject=it["subject"][:500],
+            size_bytes=it["size"],
+            proposed=it["decision"],
+            confidence=int(it["confidence"]*100)
+        ))
+    db.commit()
+    return {"summary": plan["summary"], "safe_to_delete": [i["id"] for i in plan["items"] if i["decision"]=="delete"], "review":[i["id"] for i in plan["items"] if i["decision"]=="review"], "keep":[i["id"] for i in plan["items"] if i["decision"]=="keep"]}
+
+def apply_cleanup(user: CurrentUser, message_ids: list[str], mode: str, db: Session = next(get_db())):
+    tok = _get_token(db, user)
+    if not tok: return {"error":"not_authorized"}
+    f = _fernet()
+    service = get_gmail_service(f.decrypt(tok.access_token).decode(), f.decrypt(tok.refresh_token).decode() or None, tok.expiry)
+
+    if mode == "trash":
+        # move to Trash (undo possible in Gmail)
+        for mid in message_ids:
+            service.users().messages().trash(userId="me", id=mid).execute()
+    else:
+        # label only
+        label_id = "Deklutter_Review"
+        # (for MVP: ensure label exists skipped)
+        for mid in message_ids:
+            service.users().messages().modify(userId="me", id=mid, body={"addLabelIds":[label_id]}).execute()
+
+    # mark applied
+    db.query(MailDecisionLog).filter(MailDecisionLog.user_id==user.user_id, MailDecisionLog.message_id.in_(message_ids)).update({"applied": True}, synchronize_session=False)
+    db.commit()
+    return {"deleted": len(message_ids) if mode=="trash" else 0, "labeled": len(message_ids) if mode!="trash" else 0}

@@ -1,0 +1,36 @@
+{
+    "schema_version": "v1",
+    "name_for_human": "Deklutter",
+    "name_for_model": "deklutter",
+    "description_for_human": "Free space in Gmail safely: scan, review, and delete clutter with undo.",
+    "description_for_model": "Inbox declutter agent. Start with read-only scans; only delete after explicit confirmation. Always summarize findings and show examples.",
+    "capabilities": { "tools": { "network": true } },
+    "actions": [
+      {
+        "name": "init_gmail_auth",
+        "description": "Start OAuth for Gmail (read-only).",
+        "http": { "method": "POST", "url": "http://localhost:8000/auth/google/init" },
+        "parameters": { "type": "object", "properties": {}, "required": [] }
+      },
+      {
+        "name": "scan_gmail",
+        "description": "Scan recent emails and propose a cleanup plan.",
+        "http": { "method": "POST", "url": "http://localhost:8000/gmail/scan" },
+        "parameters": {
+          "type": "object",
+          "properties": { "days_back": { "type": "integer", "default": 365 }, "limit": { "type": "integer", "default": 1000 } },
+          "required": []
+        }
+      },
+      {
+        "name": "apply_cleanup",
+        "description": "Apply cleanup (trash or label) on a list of message IDs.",
+        "http": { "method": "POST", "url": "http://localhost:8000/gmail/apply" },
+        "parameters": {
+          "type": "object",
+          "properties": { "message_ids": { "type": "array", "items": { "type": "string" } }, "mode": { "type": "string", "enum": ["trash","label_only"] } },
+          "required": ["message_ids","mode"]
+        }
+      }
+    ]
+  }

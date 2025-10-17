@@ -1,0 +1,58 @@
+services:
+  # Web Service (FastAPI)
+  - type: web
+    name: deklutter-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn services.gateway.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: deklutter-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: deklutter-redis
+          property: connectionString
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: APP_SECRET
+        generateValue: true
+
+  # PostgreSQL Database
+  - type: pserv
+    name: deklutter-db
+    env: docker
+    plan: free
+    region: oregon
+    image:
+      url: postgres:16-alpine
+    disk:
+      name: deklutter-db-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+    envVars:
+      - key: POSTGRES_USER
+        value: deklutter_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: deklutter
+
+  # Redis Cache
+  - type: redis
+    name: deklutter-redis
+    region: oregon
+    plan: free
+    maxmemoryPolicy: allkeys-lru

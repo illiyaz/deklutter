@@ -1,6 +1,26 @@
 __pycache__/
 .venv/
 .env
+.env.backup
+.env.local
+.env.*.local
 *.pyc
 *.log
 
+# Debug and temporary files
+*_DEBUG.md
+*_FIX*.md
+*QUICK*.md
+*CHECKLIST*.md
+test_*.py
+verify_*.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
