@@ -10,6 +10,7 @@ from services.gateway.routes_gmail import router as gmail_router
 from services.gateway.routes_universal import router as universal_router
 from services.gateway.routes_oauth import router as oauth_router
 from services.auth.routes import router as auth_router
+from services.auth.gpt_oauth import router as gpt_oauth_router
 
 # Configure logging
 logging.basicConfig(
@@ -125,6 +126,7 @@ def terms():
     """
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(gpt_oauth_router, prefix="/auth", tags=["GPT OAuth"])
 app.include_router(oauth_router, prefix="/oauth", tags=["Universal OAuth"])
 app.include_router(gmail_router, prefix="", tags=["Gmail (Legacy)"])
 app.include_router(universal_router, prefix="/v1", tags=["Universal API"])

@@ -92,16 +92,25 @@ def auth_google_callback(
         <html><body style="font-family: sans-serif; padding: 40px; text-align: center;">
         <h1>❌ OAuth Error</h1>
         <p>An error occurred during authorization. Please try again.</p>
-        <p style="color: #666; font-size: 14px;">Error: {str(e)}</p>
         </body></html>
         """, status_code=500)
 
 @router.post("/gmail/scan")
-def gmail_scan(req: ScanRequest, user: CurrentUser = Depends(get_current_user)):
-    plan = scan_recent(user=user, days_back=req.days_back, limit=req.limit)
-    return plan
+def gmail_scan(
+    req: ScanRequest, 
+    user: CurrentUser = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Scan Gmail inbox - requires authentication"""
+    result = scan_recent(user, req.days_back, req.limit, db)
+    return result
 
 @router.post("/gmail/apply")
-def gmail_apply(req: ApplyRequest, user: CurrentUser = Depends(get_current_user)):
-    result = apply_cleanup(user=user, message_ids=req.message_ids, mode=req.mode)
+def gmail_apply(
+    req: ApplyRequest, 
+    user: CurrentUser = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Apply cleanup to Gmail - requires authentication"""
+    result = apply_cleanup(user, req.message_ids, req.mode, db)
     return result

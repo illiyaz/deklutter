@@ -100,6 +100,8 @@ paths:
       operationId: scanGmail
       summary: Scan Gmail inbox for unwanted emails
       description: Analyzes the user's Gmail inbox and classifies emails into categories (delete, review, keep). Returns statistics and email IDs for each category. User must have completed OAuth authorization first.
+      security:
+        - DeklutterOAuth: []
       requestBody:
         required: true
         content:
@@ -184,6 +186,8 @@ paths:
       operationId: applyCleanup
       summary: Apply cleanup actions to Gmail
       description: Moves specified emails to trash or applies labels. Emails moved to trash can be recovered for 30 days. User must have completed OAuth authorization first.
+      security:
+        - DeklutterOAuth: []
       requestBody:
         required: true
         content:
@@ -228,3 +232,14 @@ paths:
           description: Gmail not authorized - User needs to complete OAuth flow first
         '500':
           description: Action failed
+
+components:
+  securitySchemes:
+    DeklutterOAuth:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://deklutter-api.onrender.com/auth/gpt/oauth/authorize
+          tokenUrl: https://deklutter-api.onrender.com/auth/gpt/oauth/token
+          scopes: {}
+      description: OAuth 2.0 authorization for accessing user's Gmail through Deklutter

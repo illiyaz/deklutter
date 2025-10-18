@@ -138,15 +138,39 @@ This will automatically import the GPT-optimized schema.
 
 ### 3.3 Configure Authentication
 
-**Authentication Type:** None
+**Authentication Type:** OAuth
 
-**Why?**
-- OAuth is handled by your API internally
-- User authorizes Gmail through `/oauth/google/init` endpoint
-- Your API auto-creates user accounts
-- No separate GPT authentication needed
+**Client ID:**
+```
+deklutter-gpt
+```
 
-**Note:** This is the zero-friction approach - users just authorize Gmail and start cleaning!
+**Client Secret:**
+```
+<Get from your .env file: GPT_CLIENT_SECRET>
+```
+
+**Authorization URL:**
+```
+https://deklutter-api.onrender.com/auth/gpt/oauth/authorize
+```
+
+**Token URL:**
+```
+https://deklutter-api.onrender.com/auth/gpt/oauth/token
+```
+
+**Scope:** (leave empty)
+
+**Token Exchange Method:** POST
+
+**Why This is Secure:**
+- ✅ GPT handles OAuth flow automatically
+- ✅ User authorizes Gmail access
+- ✅ Your API auto-creates user account
+- ✅ GPT receives access token
+- ✅ All API calls include token (secure!)
+- ✅ No one can call your API without authorization
 
 ### 3.4 Save Action
 
