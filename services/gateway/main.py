@@ -28,7 +28,51 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-app = FastAPI(title="Deklutter API", version="0.1.0")
+
+# Load custom OpenAPI schema at startup
+def load_custom_openapi():
+    """Load custom OpenAPI schema from openapi.yaml file"""
+    import yaml
+    
+    possible_paths = [
+        "/opt/render/project/src/openapi.yaml",
+        os.path.join(os.getcwd(), "openapi.yaml"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml"),
+        "openapi.yaml"
+    ]
+    
+    for path in possible_paths:
+        try:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    schema = yaml.safe_load(f)
+                if schema and 'openapi' in schema:
+                    logger.info(f"✅ Loaded custom OpenAPI schema from: {path}")
+                    return schema
+        except Exception as e:
+            logger.error(f"Error loading from {path}: {e}")
+            continue
+    
+    logger.warning("⚠️ Could not load custom openapi.yaml, using FastAPI defaults")
+    return None
+
+# Try to load custom schema
+custom_openapi_schema = load_custom_openapi()
+
+# Create FastAPI app
+if custom_openapi_schema:
+    app = FastAPI(
+        title=custom_openapi_schema.get('info', {}).get('title', 'Deklutter API'),
+        version=custom_openapi_schema.get('info', {}).get('version', '1.0.0'),
+        description=custom_openapi_schema.get('info', {}).get('description', ''),
+        servers=custom_openapi_schema.get('servers', [])
+    )
+    # Override the openapi method to return our custom schema
+    def custom_openapi():
+        return custom_openapi_schema
+    app.openapi = custom_openapi
+else:
+    app = FastAPI(title="Deklutter API", version="0.1.0")
 
 logger.info("Starting Deklutter API...")
 
@@ -104,46 +148,7 @@ def debug_files():
     }
     return files
 
-@app.get("/openapi.json")
-def get_openapi_schema():
-    """Serve OpenAPI schema for GPT Actions and API documentation"""
-    import yaml
-    
-    # Try multiple paths (order matters - try most specific first)
-    possible_paths = [
-        "/opt/render/project/src/openapi.yaml",  # Render's path (try first)
-        os.path.join(os.getcwd(), "openapi.yaml"),  # Current working directory
-        os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml"),  # Relative to this file
-        "openapi.yaml"  # Direct path
-    ]
-    
-    for openapi_path in possible_paths:
-        try:
-            logger.info(f"Trying to load OpenAPI schema from: {openapi_path}")
-            if not os.path.exists(openapi_path):
-                logger.info(f"Path does not exist: {openapi_path}")
-                continue
-            
-            with open(openapi_path, 'r') as f:
-                openapi_dict = yaml.safe_load(f)
-            
-            # Validate it has required fields
-            if not openapi_dict or 'openapi' not in openapi_dict:
-                logger.error(f"Invalid OpenAPI schema in {openapi_path}")
-                continue
-                
-            logger.info(f"✅ Successfully loaded OpenAPI schema from: {openapi_path}")
-            return openapi_dict
-        except FileNotFoundError as e:
-            logger.info(f"File not found: {openapi_path}")
-            continue
-        except Exception as e:
-            logger.error(f"❌ Error loading OpenAPI from {openapi_path}: {str(e)}", exc_info=True)
-            continue
-    
-    # Fallback to FastAPI's built-in OpenAPI
-    logger.warning("Could not find openapi.yaml, using FastAPI auto-generated schema")
-    return app.openapi()
+# OpenAPI schema is now served automatically by FastAPI via app.openapi override
 
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy():
