@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from cryptography.fernet import Fernet
 
 from services.auth.oauth.factory import OAuthProviderFactory
-from services.auth.jwt import create_access_token
+from services.auth.utils import create_access_token
 from db.models import User, OAuthToken
 
 logger = logging.getLogger(__name__)
