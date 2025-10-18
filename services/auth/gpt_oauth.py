@@ -62,14 +62,25 @@ def gpt_oauth_authorize(
         google_auth_url = handler.get_auth_url()
         
         # Replace the handler's UUID with our session ID
-        # Extract the original state from URL
+        # Extract and decode the original state from URL
         import re
+        from urllib.parse import unquote, quote
+        
         state_match = re.search(r'state=([^&]+)', google_auth_url)
         if state_match:
-            original_state = state_match.group(1)
+            encoded_original_state = state_match.group(1)
+            original_state = unquote(encoded_original_state)
+            
             # Replace with our session ID as the state
             new_state = f"google:gpt:{oauth_session_id}"
-            google_auth_url = google_auth_url.replace(f"state={original_state}", f"state={new_state}")
+            encoded_new_state = quote(new_state, safe='')
+            
+            google_auth_url = google_auth_url.replace(
+                f"state={encoded_original_state}", 
+                f"state={encoded_new_state}"
+            )
+            
+            logger.info(f"GPT OAuth: replaced state '{original_state}' with '{new_state}'")
         
         logger.info(f"GPT OAuth authorize: redirecting to Google (session: {oauth_session_id})")
         
