@@ -40,6 +40,10 @@ def scan_recent(user: CurrentUser, days_back: int, limit: int, db: Session = nex
         })
 
     plan = classify_bulk(msgs_meta)
+    
+    # Create a mapping of message_id to metadata for easy lookup
+    msg_lookup = {m["id"]: m for m in msgs_meta}
+    
     # persist preview log (not applied)
     for it in plan["items"]:
         db.add(MailDecisionLog(
@@ -52,7 +56,36 @@ def scan_recent(user: CurrentUser, days_back: int, limit: int, db: Session = nex
             confidence=int(it["confidence"]*100)
         ))
     db.commit()
-    return {"summary": plan["summary"], "safe_to_delete": [i["id"] for i in plan["items"] if i["decision"]=="delete"], "review":[i["id"] for i in plan["items"] if i["decision"]=="review"], "keep":[i["id"] for i in plan["items"] if i["decision"]=="keep"]}
+    
+    # Helper function to get sample emails for a category
+    def get_samples(items, category, max_samples=5):
+        category_items = [i for i in items if i["decision"] == category]
+        samples = []
+        for item in category_items[:max_samples]:
+            msg_meta = msg_lookup.get(item["id"])
+            if msg_meta:
+                samples.append({
+                    "from": msg_meta["from"],
+                    "subject": msg_meta["subject"],
+                    "date": msg_meta["date"],
+                    "size_kb": round(msg_meta["size"] / 1024, 1)
+                })
+        return samples
+    
+    # Get sample emails for each category
+    samples = {
+        "delete": get_samples(plan["items"], "delete", 5),
+        "review": get_samples(plan["items"], "review", 3),
+        "keep": get_samples(plan["items"], "keep", 3)
+    }
+    
+    return {
+        "summary": plan["summary"],
+        "safe_to_delete": [i["id"] for i in plan["items"] if i["decision"]=="delete"],
+        "review": [i["id"] for i in plan["items"] if i["decision"]=="review"],
+        "keep": [i["id"] for i in plan["items"] if i["decision"]=="keep"],
+        "samples": samples
+    }
 
 def apply_cleanup(user: CurrentUser, message_ids: list[str], mode: str, db: Session = next(get_db())):
     tok = _get_token(db, user)

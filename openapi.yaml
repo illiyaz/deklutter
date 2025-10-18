@@ -93,6 +93,56 @@ paths:
                     items:
                       type: string
                     example: ["msg_id_4", "msg_id_5"]
+                  samples:
+                    type: object
+                    description: Sample emails from each category for user preview
+                    properties:
+                      delete:
+                        type: array
+                        description: Sample emails marked for deletion (up to 5)
+                        items:
+                          type: object
+                          properties:
+                            from:
+                              type: string
+                              example: "newsletter@example.com"
+                            subject:
+                              type: string
+                              example: "Weekly deals and promotions"
+                            date:
+                              type: string
+                              example: "Mon, 18 Oct 2025 10:30:00 +0000"
+                            size_kb:
+                              type: number
+                              example: 45.2
+                      review:
+                        type: array
+                        description: Sample emails for user review (up to 3)
+                        items:
+                          type: object
+                          properties:
+                            from:
+                              type: string
+                            subject:
+                              type: string
+                            date:
+                              type: string
+                            size_kb:
+                              type: number
+                      keep:
+                        type: array
+                        description: Sample emails to keep (up to 3)
+                        items:
+                          type: object
+                          properties:
+                            from:
+                              type: string
+                            subject:
+                              type: string
+                            date:
+                              type: string
+                            size_kb:
+                              type: number
         '403':
           description: Gmail not authorized - User needs to complete OAuth flow first
         '500':
