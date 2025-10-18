@@ -90,6 +90,20 @@ def root():
 def health():
     return {"ok": True}
 
+@app.get("/debug/files")
+def debug_files():
+    """Debug endpoint to see what files are available"""
+    import glob
+    cwd = os.getcwd()
+    files = {
+        "cwd": cwd,
+        "files_in_cwd": os.listdir(cwd),
+        "openapi_yaml_exists": os.path.exists(os.path.join(cwd, "openapi.yaml")),
+        "dirname_file": os.path.dirname(__file__),
+        "glob_yaml": glob.glob("**/*.yaml", recursive=True)[:20]
+    }
+    return files
+
 @app.get("/openapi.json")
 def get_openapi_schema():
     """Serve OpenAPI schema for GPT Actions and API documentation"""
