@@ -58,14 +58,18 @@ def gpt_oauth_authorize(
         gpt_callback_uri = f"{base_url}/auth/gpt/oauth/callback"
         handler.provider.redirect_uri = gpt_callback_uri
         
+        # Get auth URL - it will have state like "google:gpt:uuid"
         google_auth_url = handler.get_auth_url()
         
-        # Modify state to include our session ID
-        # State format: google:gpt:oauth_session_id
-        google_auth_url = google_auth_url.replace(
-            "google:gpt:",
-            f"google:gpt:{oauth_session_id}:"
-        )
+        # Replace the handler's UUID with our session ID
+        # Extract the original state from URL
+        import re
+        state_match = re.search(r'state=([^&]+)', google_auth_url)
+        if state_match:
+            original_state = state_match.group(1)
+            # Replace with our session ID as the state
+            new_state = f"google:gpt:{oauth_session_id}"
+            google_auth_url = google_auth_url.replace(f"state={original_state}", f"state={new_state}")
         
         logger.info(f"GPT OAuth authorize: redirecting to Google (session: {oauth_session_id})")
         
@@ -113,12 +117,15 @@ def gpt_oauth_callback(
     
     try:
         # Parse state to get our session ID
-        # State format: google:gpt:oauth_session_id:uuid
+        # State format: google:gpt:oauth_session_id
         parts = state.split(":")
-        if len(parts) < 3:
-            raise ValueError("Invalid state format")
+        if len(parts) != 3:
+            logger.error(f"Invalid state format: {state} (expected 3 parts, got {len(parts)})")
+            raise ValueError(f"Invalid state format: expected 3 parts, got {len(parts)}")
         
         oauth_session_id = parts[2]
+        
+        logger.info(f"GPT OAuth callback received (session: {oauth_session_id})")
         
         # Retrieve GPT's original state and redirect_uri
         session_data = _oauth_states.get(oauth_session_id)
