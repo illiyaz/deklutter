@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Deklutter API
-  description: AI-powered Gmail inbox cleaner that automatically identifies and removes spam, newsletters, and promotional emails.
+  description: AI-powered digital decluttering assistant. Clean Gmail inbox by automatically identifying and removing spam, newsletters, and promotional emails. More providers (Yahoo, Outlook, Drive, Dropbox) coming soon!
   version: 1.0.0
   contact:
     name: Deklutter Support
@@ -81,9 +81,7 @@ paths:
     post:
       operationId: initializeGmailOAuth
       summary: Initialize Gmail OAuth flow
-      description: Generates an OAuth authorization URL for the user to grant Gmail access. Returns a URL that the user should visit to authorize.
-      security:
-        - BearerAuth: []
+      description: Generates an OAuth authorization URL for the user to grant Gmail access. Returns a URL that the user should visit to authorize. No authentication required - user identity established through OAuth.
       responses:
         '200':
           description: OAuth URL generated successfully
@@ -96,16 +94,12 @@ paths:
                     type: string
                     description: URL for user to authorize Gmail access
                     example: "https://accounts.google.com/o/oauth2/auth?..."
-        '401':
-          description: Unauthorized - Invalid or missing authentication token
 
   /gmail/scan:
     post:
       operationId: scanGmail
       summary: Scan Gmail inbox for unwanted emails
-      description: Analyzes the user's Gmail inbox and classifies emails into categories (delete, review, keep). Returns statistics and email IDs for each category.
-      security:
-        - BearerAuth: []
+      description: Analyzes the user's Gmail inbox and classifies emails into categories (delete, review, keep). Returns statistics and email IDs for each category. User must have completed OAuth authorization first.
       requestBody:
         required: true
         content:
@@ -180,18 +174,16 @@ paths:
                     items:
                       type: string
                     example: ["msg_id_4", "msg_id_5"]
-        '401':
-          description: Unauthorized - Invalid or missing authentication token
         '403':
-          description: Gmail not authorized - User needs to complete OAuth flow
+          description: Gmail not authorized - User needs to complete OAuth flow first
+        '500':
+          description: Scan failed
 
   /gmail/apply:
     post:
       operationId: applyCleanup
       summary: Apply cleanup actions to Gmail
-      description: Moves specified emails to trash or applies labels. Emails moved to trash can be recovered for 30 days.
-      security:
-        - BearerAuth: []
+      description: Moves specified emails to trash or applies labels. Emails moved to trash can be recovered for 30 days. User must have completed OAuth authorization first.
       requestBody:
         required: true
         content:
@@ -232,15 +224,7 @@ paths:
                     type: string
                     description: Action that was performed
                     example: trash
-        '401':
-          description: Unauthorized - Invalid or missing authentication token
         '403':
-          description: Gmail not authorized - User needs to complete OAuth flow
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token obtained from /auth/login endpoint
+          description: Gmail not authorized - User needs to complete OAuth flow first
+        '500':
+          description: Action failed

@@ -129,46 +129,24 @@ Mention when relevant: "Currently I support Gmail. Soon I'll be able to clean Ya
 
 ### 3.2 Import Schema
 
-**Option A: Import from URL (Recommended)**
+**Import from URL:**
 ```
 https://deklutter-api.onrender.com/openapi.json
 ```
 
-**Option B: Copy/Paste**
-- Open `openapi.yaml` in your repo
-- Copy entire contents
-- Paste into schema field
+This will automatically import the GPT-optimized schema.
 
 ### 3.3 Configure Authentication
 
-**Authentication Type:** OAuth
+**Authentication Type:** None
 
-**Client ID:**
-```
-<Your Google OAuth Client ID from .env file>
-```
+**Why?**
+- OAuth is handled by your API internally
+- User authorizes Gmail through `/oauth/google/init` endpoint
+- Your API auto-creates user accounts
+- No separate GPT authentication needed
 
-**Client Secret:**
-```
-<Your Google OAuth Client Secret from .env file>
-```
-
-**Authorization URL:**
-```
-https://accounts.google.com/o/oauth2/auth
-```
-
-**Token URL:**
-```
-https://oauth2.googleapis.com/token
-```
-
-**Scope:**
-```
-https://www.googleapis.com/auth/gmail.readonly
-```
-
-**Token Exchange Method:** Default (POST request)
+**Note:** This is the zero-friction approach - users just authorize Gmail and start cleaning!
 
 ### 3.4 Save Action
 

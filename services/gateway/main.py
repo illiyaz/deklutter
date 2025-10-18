@@ -91,9 +91,8 @@ def health():
 
 @app.get("/openapi.json")
 def get_openapi_schema():
-    """Serve OpenAPI schema for GPT Actions"""
+    """Serve OpenAPI schema for GPT Actions and API documentation"""
     import yaml
-    import json
     
     openapi_path = os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml")
     try:
