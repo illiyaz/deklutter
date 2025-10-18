@@ -234,6 +234,8 @@ paths:
           description: Action failed
 
 components:
+  schemas: {}
+  
   securitySchemes:
     DeklutterOAuth:
       type: oauth2
