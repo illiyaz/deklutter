@@ -61,3 +61,7 @@ ngrok http 8000
 ```
 
 Then use the ngrok URL in Google Console.
+
+
+# (.venv) (base) LENOVO@MacBook-Pro deklutter % ngrok config add-authtoken 34COVgGKEIJsUveHAEBahu5bBdt_7iRt9gqXP81XpzKwv5eEa
+# Authtoken saved to configuration file: /Users/LENOVO/Library/Application Support/ngrok/ngrok.yml

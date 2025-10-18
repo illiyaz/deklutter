@@ -95,14 +95,30 @@ def get_openapi_schema():
     """Serve OpenAPI schema for GPT Actions and API documentation"""
     import yaml
     
-    openapi_path = os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml")
-    try:
-        with open(openapi_path, 'r') as f:
-            openapi_dict = yaml.safe_load(f)
-        return openapi_dict
-    except FileNotFoundError:
-        # Fallback to FastAPI's built-in OpenAPI
-        return app.openapi()
+    # Try multiple paths
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml"),
+        os.path.join(os.getcwd(), "openapi.yaml"),
+        "/opt/render/project/src/openapi.yaml",  # Render's typical path
+        "openapi.yaml"
+    ]
+    
+    for openapi_path in possible_paths:
+        try:
+            logger.info(f"Trying to load OpenAPI schema from: {openapi_path}")
+            with open(openapi_path, 'r') as f:
+                openapi_dict = yaml.safe_load(f)
+            logger.info(f"Successfully loaded OpenAPI schema from: {openapi_path}")
+            return openapi_dict
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            logger.error(f"Error loading OpenAPI from {openapi_path}: {str(e)}")
+            continue
+    
+    # Fallback to FastAPI's built-in OpenAPI
+    logger.warning("Could not find openapi.yaml, using FastAPI auto-generated schema")
+    return app.openapi()
 
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy():
