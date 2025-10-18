@@ -50,8 +50,14 @@ def gpt_oauth_authorize(
             "created_at": datetime.utcnow()
         }
         
-        # Start Google OAuth flow
+        # Start Google OAuth flow with GPT-specific redirect URI
         handler = UnifiedOAuthHandler("google", "gpt")
+        
+        # Override redirect URI for GPT flow
+        base_url = os.getenv("API_URL", "https://deklutter-api.onrender.com")
+        gpt_callback_uri = f"{base_url}/auth/gpt/oauth/callback"
+        handler.provider.redirect_uri = gpt_callback_uri
+        
         google_auth_url = handler.get_auth_url()
         
         # Modify state to include our session ID
@@ -125,8 +131,14 @@ def gpt_oauth_callback(
         # Clean up session
         del _oauth_states[oauth_session_id]
         
-        # Handle Google OAuth callback
+        # Handle Google OAuth callback with GPT-specific redirect URI
         handler = UnifiedOAuthHandler("google", "gpt")
+        
+        # Override redirect URI for token exchange
+        base_url = os.getenv("API_URL", "https://deklutter-api.onrender.com")
+        gpt_callback_uri = f"{base_url}/auth/gpt/oauth/callback"
+        handler.provider.redirect_uri = gpt_callback_uri
+        
         result = handler.handle_callback(code, state, db)
         
         user = result["user"]
