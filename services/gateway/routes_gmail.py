@@ -114,3 +114,38 @@ def gmail_apply(
     """Apply cleanup to Gmail - requires authentication"""
     result = apply_cleanup(user, req.message_ids, req.mode, db)
     return result
+
+@router.post("/oauth/revoke")
+def revoke_access(
+    user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Revoke all access and delete user data.
+    
+    Deletes all OAuth tokens for the user.
+    User can re-authorize later if needed.
+    """
+    from db.models import OAuthToken
+    from datetime import datetime
+    
+    try:
+        # Delete all OAuth tokens for this user
+        deleted_count = db.query(OAuthToken).filter(
+            OAuthToken.user_id == user.user_id
+        ).delete()
+        
+        db.commit()
+        
+        logger.info(f"Revoked access for user {user.email}, deleted {deleted_count} tokens")
+        
+        return {
+            "message": "Access revoked successfully. All data deleted.",
+            "revoked_at": datetime.utcnow().isoformat() + "Z",
+            "tokens_deleted": deleted_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Revoke failed for user {user.email}: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to revoke access")

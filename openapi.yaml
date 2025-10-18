@@ -181,6 +181,33 @@ paths:
         '500':
           description: Scan failed
 
+  /oauth/revoke:
+    post:
+      operationId: revokeAccess
+      summary: Revoke Gmail access and delete all user data
+      description: Completely removes Deklutter's access to user's Gmail. Deletes all stored tokens and data. User can re-authorize later if needed.
+      security:
+        - DeklutterOAuth: []
+      responses:
+        '200':
+          description: Access revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access revoked successfully. All data deleted."
+                  revoked_at:
+                    type: string
+                    format: date-time
+                    example: "2025-10-18T12:47:00Z"
+        '401':
+          description: Unauthorized - Invalid token
+        '500':
+          description: Revoke failed
+
   /gmail/apply:
     post:
       operationId: applyCleanup
