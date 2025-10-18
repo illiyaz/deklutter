@@ -7,12 +7,15 @@ __pycache__/
 *.pyc
 *.log
 
-# Debug and temporary files
-*_DEBUG.md
-*_FIX*.md
-*QUICK*.md
-*CHECKLIST*.md
-test_*.py
+# Debug and temporary files (specific patterns only)
+FINAL_DEBUG.md
+FIX_OAUTH_ERROR.md
+GOOGLE_CONSOLE_CHECKLIST.md
+QUICK_FIX.md
+USE_TUNNEL.md
+TESTING_GMAIL.md
+test_auth.py
+test_gmail.py
 verify_*.py
 
 # IDE
