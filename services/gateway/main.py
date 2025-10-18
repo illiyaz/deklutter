@@ -109,25 +109,36 @@ def get_openapi_schema():
     """Serve OpenAPI schema for GPT Actions and API documentation"""
     import yaml
     
-    # Try multiple paths
+    # Try multiple paths (order matters - try most specific first)
     possible_paths = [
-        os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml"),
-        os.path.join(os.getcwd(), "openapi.yaml"),
-        "/opt/render/project/src/openapi.yaml",  # Render's typical path
-        "openapi.yaml"
+        "/opt/render/project/src/openapi.yaml",  # Render's path (try first)
+        os.path.join(os.getcwd(), "openapi.yaml"),  # Current working directory
+        os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml"),  # Relative to this file
+        "openapi.yaml"  # Direct path
     ]
     
     for openapi_path in possible_paths:
         try:
             logger.info(f"Trying to load OpenAPI schema from: {openapi_path}")
+            if not os.path.exists(openapi_path):
+                logger.info(f"Path does not exist: {openapi_path}")
+                continue
+            
             with open(openapi_path, 'r') as f:
                 openapi_dict = yaml.safe_load(f)
-            logger.info(f"Successfully loaded OpenAPI schema from: {openapi_path}")
+            
+            # Validate it has required fields
+            if not openapi_dict or 'openapi' not in openapi_dict:
+                logger.error(f"Invalid OpenAPI schema in {openapi_path}")
+                continue
+                
+            logger.info(f"✅ Successfully loaded OpenAPI schema from: {openapi_path}")
             return openapi_dict
-        except FileNotFoundError:
+        except FileNotFoundError as e:
+            logger.info(f"File not found: {openapi_path}")
             continue
         except Exception as e:
-            logger.error(f"Error loading OpenAPI from {openapi_path}: {str(e)}")
+            logger.error(f"❌ Error loading OpenAPI from {openapi_path}: {str(e)}", exc_info=True)
             continue
     
     # Fallback to FastAPI's built-in OpenAPI
