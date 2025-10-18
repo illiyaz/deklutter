@@ -33,3 +33,13 @@ class MailDecisionLog(Base):
     confidence = Column(Integer)           # 0-100
     applied = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True)
+    action = Column(String)                # scan, delete, revoke, etc.
+    provider = Column(String)              # google, yahoo, etc.
+    details = Column(Text)                 # JSON with action details
+    items_count = Column(Integer)          # number of items processed
+    created_at = Column(DateTime, server_default=func.now(), index=True)

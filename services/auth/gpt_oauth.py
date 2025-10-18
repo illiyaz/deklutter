@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from db.models import User, OAuthToken
 from services.auth.oauth.handler import UnifiedOAuthHandler
-from services.auth.jwt import create_access_token
+from services.auth.utils import create_access_token, create_refresh_token
 
 logger = logging.getLogger(__name__)
 
@@ -131,16 +131,24 @@ def gpt_oauth_callback(
         
         user = result["user"]
         
-        # Generate access token for GPT to use
-        access_token = create_access_token({
+        # Generate tokens for GPT to use
+        token_data = {
             "sub": str(user.id),
             "email": user.email,
             "provider": "google"
-        })
+        }
+        
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
+        
+        # Store refresh token in session for later use
+        # In production, store in Redis with user_id as key
+        _oauth_states[f"refresh_{user.id}"] = refresh_token
         
         logger.info(f"GPT OAuth success for user: {user.email}")
         
         # Redirect back to GPT with our access token
+        # GPT will exchange this for the full token response
         redirect_url = f"{gpt_redirect_uri}?code={access_token}&state={gpt_state}"
         
         return RedirectResponse(url=redirect_url)
@@ -185,11 +193,20 @@ def gpt_oauth_token(
         # (we returned it in the callback redirect)
         access_token = code
         
+        # Decode to get user info
+        from services.auth.utils import decode_access_token
+        payload = decode_access_token(access_token)
+        user_id = payload.get("sub")
+        
+        # Get refresh token from storage
+        refresh_token = _oauth_states.get(f"refresh_{user_id}", "")
+        
         logger.info("GPT OAuth token exchange successful")
         
-        # Return token in OAuth format
+        # Return tokens in OAuth format
         return {
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "Bearer",
             "expires_in": 3600  # 1 hour
         }
@@ -199,3 +216,91 @@ def gpt_oauth_token(
     except Exception as e:
         logger.error(f"GPT OAuth token exchange failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Token exchange failed")
+
+
+@router.post("/gpt/oauth/refresh")
+def gpt_oauth_refresh(
+    grant_type: str = Form(...),
+    refresh_token: str = Form(...),
+    client_id: str = Form(...),
+    client_secret: str = Form(...)
+):
+    """
+    Refresh access token using refresh token.
+    
+    GPT calls this automatically when access token expires.
+    """
+    try:
+        if grant_type != "refresh_token":
+            raise HTTPException(status_code=400, detail="Invalid grant_type")
+        
+        # Validate client credentials
+        expected_client_id = os.getenv("GPT_CLIENT_ID", "deklutter-gpt")
+        expected_client_secret = os.getenv("GPT_CLIENT_SECRET", "change-me-in-production")
+        
+        if client_id != expected_client_id or client_secret != expected_client_secret:
+            raise HTTPException(status_code=401, detail="Invalid client credentials")
+        
+        # Decode and validate refresh token
+        from services.auth.utils import decode_refresh_token
+        payload = decode_refresh_token(refresh_token)
+        
+        # Generate new access token
+        token_data = {
+            "sub": payload.get("sub"),
+            "email": payload.get("email"),
+            "provider": payload.get("provider", "google")
+        }
+        
+        new_access_token = create_access_token(token_data)
+        
+        logger.info(f"Token refreshed for user: {payload.get('email')}")
+        
+        # Return new access token (refresh token stays the same)
+        return {
+            "access_token": new_access_token,
+            "token_type": "Bearer",
+            "expires_in": 3600  # 1 hour
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token refresh failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+
+@router.post("/gpt/oauth/revoke")
+def gpt_oauth_revoke(
+    token: str = Form(...),
+    token_type_hint: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Revoke access token and delete all user data.
+    
+    User can call this to completely remove Deklutter's access to their Gmail.
+    """
+    try:
+        # Decode token to get user info
+        from services.auth.utils import decode_access_token
+        payload = decode_access_token(token)
+        user_id = payload.get("sub")
+        user_email = payload.get("email")
+        
+        # Delete all OAuth tokens for this user
+        db.query(OAuthToken).filter(OAuthToken.user_id == user_id).delete()
+        
+        # Clean up refresh token from memory
+        if f"refresh_{user_id}" in _oauth_states:
+            del _oauth_states[f"refresh_{user_id}"]
+        
+        db.commit()
+        
+        logger.info(f"Revoked all access for user: {user_email}")
+        
+        return {"message": "Access revoked successfully"}
+        
+    except Exception as e:
+        logger.error(f"Revoke failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Revoke failed")
