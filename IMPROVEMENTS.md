@@ -11,14 +11,19 @@ This document tracks all planned improvements, feature requests, and technical d
 ### Email Classification Improvements
 
 #### **1. Show Sample Emails Before Deletion**
-- **Status:** 🔴 Not Started
+- **Status:** 🟢 Completed (Oct 19, 2025)
 - **Priority:** High
 - **Description:** Before deleting, show user 3-5 sample emails from the "safe to delete" category
 - **Why:** Builds trust, lets user verify accuracy
 - **Implementation:**
-  - Modify `scanGmail` response to include sample email metadata
-  - Update GPT instructions to display samples
-  - Add "Show more samples" option
+  - ✅ Modified `scanGmail` response to include sample email metadata
+  - ✅ Updated OpenAPI schema with samples field
+  - ✅ Updated GPT instructions to display samples
+  - ✅ Shows up to 5 delete samples, 3 review samples, 3 keep samples
+- **Files Changed:**
+  - `services/gmail_connector/api.py`
+  - `openapi.yaml`
+  - `GPT_INSTRUCTIONS.md`
 
 #### **2. AI-Powered Classification (LLM Edge Cases)**
 - **Status:** 🟡 Stubbed (code exists but commented out)
