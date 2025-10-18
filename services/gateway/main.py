@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from db.session import Base, engine
 from db import models  # Import models so they're registered with Base
 from services.gateway.routes_gmail import router as gmail_router
+from services.gateway.routes_universal import router as universal_router
 from services.auth.routes import router as auth_router
 
 # Configure logging
@@ -124,4 +125,5 @@ def terms():
     """
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-app.include_router(gmail_router, prefix="", tags=["Gmail"])
+app.include_router(gmail_router, prefix="", tags=["Gmail (Legacy)"])
+app.include_router(universal_router, prefix="/v1", tags=["Universal API"])
