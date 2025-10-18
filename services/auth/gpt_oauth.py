@@ -26,13 +26,13 @@ router = APIRouter()
 _oauth_states = {}
 
 
-@router.post("/gpt/oauth/authorize")
+@router.get("/gpt/oauth/authorize")
 def gpt_oauth_authorize(
-    response_type: str = Form(...),
-    client_id: str = Form(...),
-    redirect_uri: str = Form(...),
-    scope: str = Form(...),
-    state: str = Form(...)
+    response_type: str,
+    client_id: str,
+    redirect_uri: str,
+    scope: str = "",
+    state: str = ""
 ):
     """
     GPT OAuth authorization endpoint.
