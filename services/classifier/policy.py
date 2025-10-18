@@ -1,8 +1,23 @@
 import hashlib
 from .llm_adapter import judge_edge_cases
 
-BULK_HINTS = ("unsubscribe", "no-reply", "noreply", "newsletter")
+BULK_HINTS = ("unsubscribe", "newsletter", "marketing", "promotional")
 PROMO_LABELS = {"CATEGORY_PROMOTIONS", "CATEGORY_FORUMS", "CATEGORY_SOCIAL"}
+
+# Domains that should NEVER be auto-deleted (important senders)
+PROTECTED_DOMAINS = {
+    "bank", "paypal", "stripe", "amazon", "apple", "google", "microsoft",
+    "gov.in", "gov", ".edu", "irs.gov", "uscis.gov",
+    "airline", "booking", "hotel", "uber", "lyft",
+    "healthcare", "hospital", "doctor", "medical"
+}
+
+# Keywords that indicate important emails
+IMPORTANT_KEYWORDS = {
+    "invoice", "receipt", "payment", "order", "confirmation", "booking",
+    "ticket", "reservation", "appointment", "statement", "tax",
+    "verification", "security", "alert", "urgent", "action required"
+}
 
 def _sender_hash(sender: str) -> str:
     return hashlib.sha1(sender.lower().encode()).hexdigest()[:12]
@@ -13,13 +28,28 @@ def _heuristic(item):
     labels = set(item.get("labels") or [])
     size = item.get("size", 0)
 
-    # promotional/social labels → likely delete if older than ~90d (we don’t parse date here in MVP)
-    if labels & PROMO_LABELS:
-        return "delete", 0.9
+    # SAFETY: Protected domains should never be auto-deleted
+    if any(domain in sender for domain in PROTECTED_DOMAINS):
+        return "keep", 0.95
+    
+    # SAFETY: Important keywords in subject → keep or review
+    if any(keyword in subject for keyword in IMPORTANT_KEYWORDS):
+        return "review", 0.85  # User should review these
+    
+    # SAFETY: Emails in INBOX (not in promotions) → be conservative
+    if "INBOX" in labels and not (labels & PROMO_LABELS):
+        return "keep", 0.8
 
-    # bulky newsletters
+    # promotional/social labels → likely delete (but lower confidence now)
+    if labels & PROMO_LABELS:
+        # Still check for important keywords even in promotions
+        if any(keyword in subject for keyword in IMPORTANT_KEYWORDS):
+            return "review", 0.75
+        return "delete", 0.7  # Reduced from 0.9
+
+    # bulky newsletters (but not from protected domains)
     if any(h in sender or h in subject for h in BULK_HINTS):
-        return "delete", 0.85
+        return "delete", 0.65  # Reduced from 0.85
 
     # very large messages (likely attachments) → review
     if size > 3_000_000:  # > ~3MB
