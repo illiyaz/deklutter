@@ -87,6 +87,21 @@ def root():
 def health():
     return {"ok": True}
 
+@app.get("/openapi.json")
+def get_openapi_schema():
+    """Serve OpenAPI schema for GPT Actions"""
+    import yaml
+    import json
+    
+    openapi_path = os.path.join(os.path.dirname(__file__), "..", "..", "openapi.yaml")
+    try:
+        with open(openapi_path, 'r') as f:
+            openapi_dict = yaml.safe_load(f)
+        return openapi_dict
+    except FileNotFoundError:
+        # Fallback to FastAPI's built-in OpenAPI
+        return app.openapi()
+
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy():
     return """

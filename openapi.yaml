@@ -1,0 +1,181 @@
+openapi: 3.1.0
+info:
+  title: Deklutter API
+  description: AI-powered Gmail inbox cleaner that automatically identifies and removes spam, newsletters, and promotional emails.
+  version: 1.0.0
+  contact:
+    name: Deklutter Support
+    email: mohammad.illiyaz@gmail.com
+
+servers:
+  - url: https://deklutter-api.onrender.com
+    description: Production server
+
+paths:
+  /auth/google/init:
+    post:
+      operationId: initializeGmailOAuth
+      summary: Initialize Gmail OAuth flow
+      description: Generates an OAuth authorization URL for the user to grant Gmail access. Returns a URL that the user should visit to authorize.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OAuth URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  auth_url:
+                    type: string
+                    description: URL for user to authorize Gmail access
+                    example: "https://accounts.google.com/o/oauth2/auth?..."
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+
+  /gmail/scan:
+    post:
+      operationId: scanGmail
+      summary: Scan Gmail inbox for unwanted emails
+      description: Analyzes the user's Gmail inbox and classifies emails into categories (delete, review, keep). Returns statistics and email IDs for each category.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days_back:
+                  type: integer
+                  description: Number of days to look back in inbox history
+                  default: 30
+                  minimum: 1
+                  maximum: 365
+                  example: 30
+                limit:
+                  type: integer
+                  description: Maximum number of emails to scan
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  example: 100
+      responses:
+        '200':
+          description: Scan completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      total_items:
+                        type: integer
+                        description: Total number of emails scanned
+                        example: 127
+                      counts:
+                        type: object
+                        properties:
+                          delete:
+                            type: integer
+                            description: Number of emails safe to delete (spam/promotional)
+                            example: 45
+                          review:
+                            type: integer
+                            description: Number of emails that need review (uncertain)
+                            example: 12
+                          keep:
+                            type: integer
+                            description: Number of important emails to keep
+                            example: 70
+                      approx_size_mb:
+                        type: number
+                        format: float
+                        description: Approximate size in MB that can be freed
+                        example: 3.2
+                  safe_to_delete:
+                    type: array
+                    description: Email IDs that are safe to delete
+                    items:
+                      type: string
+                    example: ["msg_id_1", "msg_id_2"]
+                  review:
+                    type: array
+                    description: Email IDs that need user review
+                    items:
+                      type: string
+                    example: ["msg_id_3"]
+                  keep:
+                    type: array
+                    description: Email IDs to keep
+                    items:
+                      type: string
+                    example: ["msg_id_4", "msg_id_5"]
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+        '403':
+          description: Gmail not authorized - User needs to complete OAuth flow
+
+  /gmail/apply:
+    post:
+      operationId: applyCleanup
+      summary: Apply cleanup actions to Gmail
+      description: Moves specified emails to trash or applies labels. Emails moved to trash can be recovered for 30 days.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message_ids
+              properties:
+                message_ids:
+                  type: array
+                  description: List of email IDs to process
+                  items:
+                    type: string
+                  example: ["msg_id_1", "msg_id_2", "msg_id_3"]
+                mode:
+                  type: string
+                  description: Action to perform on emails
+                  enum: [trash, label_only]
+                  default: trash
+                  example: trash
+      responses:
+        '200':
+          description: Cleanup applied successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  processed:
+                    type: integer
+                    description: Number of emails processed
+                    example: 45
+                  mode:
+                    type: string
+                    description: Action that was performed
+                    example: trash
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+        '403':
+          description: Gmail not authorized - User needs to complete OAuth flow
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login endpoint

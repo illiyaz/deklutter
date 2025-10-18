@@ -8,6 +8,7 @@ sqlalchemy==2.0.36
 alembic==1.13.2
 psycopg2-binary==2.9.10
 redis==5.0.8
+pyyaml==6.0.1
 
 # Authentication
 python-jose[cryptography]==3.3.0
