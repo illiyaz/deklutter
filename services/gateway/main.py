@@ -132,7 +132,29 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"ok": True}
+    """Health check endpoint for monitoring"""
+    import time
+    from db.session import SessionLocal
+    
+    # Check database connection
+    db_healthy = False
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        db_healthy = True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+    
+    return {
+        "status": "healthy" if db_healthy else "degraded",
+        "version": "1.0.0",
+        "timestamp": int(time.time()),
+        "services": {
+            "database": "healthy" if db_healthy else "unhealthy",
+            "api": "healthy"
+        }
+    }
 
 @app.get("/debug/files")
 def debug_files():
@@ -164,6 +186,21 @@ def terms():
     <p>By using this service, you agree to allow Deklutter to access your Gmail for spam detection purposes.</p>
     </body></html>
     """
+
+@app.get("/version")
+def version():
+    """Get API version and build info"""
+    return {
+        "version": "1.0.0",
+        "build_date": "2025-10-19",
+        "features": {
+            "gmail": True,
+            "yahoo": False,
+            "outlook": False,
+            "drive": False
+        },
+        "status": "production"
+    }
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(gpt_oauth_router, prefix="/auth", tags=["GPT OAuth"])

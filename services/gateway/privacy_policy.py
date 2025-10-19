@@ -112,7 +112,7 @@ PRIVACY_POLICY_HTML = """
     <h2>11. Contact Us</h2>
     <p>If you have questions about this privacy policy or your data, please contact us:</p>
     <ul>
-        <li><strong>Email:</strong> privacy@deklutter.app (or your email)</li>
+        <li><strong>Email:</strong> mohammad.illiyaz@gmail.com</li>
         <li><strong>GitHub:</strong> <a href="https://github.com/illiyaz/deklutter">github.com/illiyaz/deklutter</a></li>
     </ul>
 
