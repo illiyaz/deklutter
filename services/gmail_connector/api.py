@@ -200,13 +200,38 @@ def scan_recent(user: CurrentUser, days_back: int, limit: int, db: Session = nex
     # Create a mapping of message_id to metadata for easy lookup
     msg_lookup = {m["id"]: m for m in msgs_meta}
     
-    # persist preview log (not applied)
+    # persist preview log (not applied) - NO SUBJECTS for privacy
     for it in plan["items"]:
+        # Extract sender domain from sender_hash (if available in metadata)
+        msg_meta = msg_lookup.get(it["id"])
+        sender_domain = None
+        gmail_category = None
+        has_unsubscribe = False
+        
+        if msg_meta:
+            # Extract domain from sender email
+            sender_email = msg_meta.get("from", "")
+            if "@" in sender_email:
+                sender_domain = sender_email.split("@")[-1].strip(">").lower()
+            
+            # Get Gmail category (CATEGORY_PROMOTIONS, CATEGORY_SOCIAL, etc.)
+            labels = msg_meta.get("labels", [])
+            for label in labels:
+                if label.startswith("CATEGORY_"):
+                    gmail_category = label
+                    break
+            
+            # Check for unsubscribe link (newsletter indicator)
+            headers = msg_meta.get("headers", {})
+            has_unsubscribe = "list-unsubscribe" in headers or "unsubscribe" in headers
+        
         db.add(MailDecisionLog(
             user_id=user.user_id,
             message_id=it["id"],
             sender_hash=it["sender_hash"],
-            subject=it["subject"][:500],
+            sender_domain=sender_domain,
+            gmail_category=gmail_category,
+            has_unsubscribe=has_unsubscribe,
             size_bytes=it["size"],
             proposed=it["decision"],
             confidence=int(it["confidence"]*100)

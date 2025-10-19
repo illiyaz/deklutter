@@ -38,19 +38,25 @@ PRIVACY_POLICY_HTML = """
     <h2>1. Information We Collect</h2>
     <p>When you use Deklutter, we collect:</p>
     <ul>
-        <li><strong>Email Metadata Only:</strong> Sender email address, subject line, date, and message size</li>
+        <li><strong>Email Metadata Only:</strong> Sender domain (e.g., "linkedin.com"), date, and message size</li>
         <li><strong>Gmail Labels:</strong> Categories assigned by Gmail (e.g., Promotions, Social)</li>
         <li><strong>OAuth Tokens:</strong> Encrypted access tokens to connect to your Gmail account</li>
         <li><strong>Classification Decisions:</strong> Records of which emails were marked for deletion/review/keep</li>
     </ul>
+    
+    <div class="highlight">
+        <strong>🔒 Privacy First:</strong> We deliberately DO NOT store email subjects or sender email addresses. 
+        Subjects are shown to you during scans but are never saved to our database.
+    </div>
 
     <h2>2. What We DO NOT Collect</h2>
     <ul>
         <li>❌ Email body content or message text</li>
+        <li>❌ Email subjects (shown during scan but not stored)</li>
+        <li>❌ Sender email addresses (only hashed + domain stored)</li>
         <li>❌ Email attachments or files</li>
         <li>❌ Contact lists or address books</li>
         <li>❌ Passwords or credentials (handled securely via OAuth)</li>
-        <li>❌ Personal information beyond what's in email metadata</li>
     </ul>
 
     <h2>3. How We Use Your Information</h2>

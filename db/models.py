@@ -25,14 +25,29 @@ class MailDecisionLog(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, index=True)
     message_id = Column(String, index=True)
-    sender_hash = Column(String, index=True)
-    subject = Column(Text)
+    
+    # Sender info (no PII - hashed/domain only)
+    sender_hash = Column(String, index=True)  # SHA-256 hash of sender email
+    sender_domain = Column(String, index=True)  # e.g., "linkedin.com" for ML
+    
+    # Email metadata (no PII)
+    gmail_category = Column(String, index=True)  # "CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", etc.
+    has_unsubscribe = Column(Boolean, default=False)  # Newsletter indicator
     size_bytes = Column(Integer)
     internal_date = Column(DateTime)
+    
+    # Classification results
     proposed = Column(String)              # keep/review/delete
     confidence = Column(Integer)           # 0-100
     applied = Column(Boolean, default=False)
+    
+    # User feedback (for ML improvement)
+    user_feedback = Column(String, nullable=True)  # "false_positive", "correct", "wrong_category"
+    
     created_at = Column(DateTime, server_default=func.now())
+    
+    # NOTE: We deliberately DO NOT store email subjects to protect user privacy
+    # Subjects are shown during scan but not persisted to database
 
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
