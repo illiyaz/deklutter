@@ -57,10 +57,10 @@ Ready to scan?"
 ### Scanning
 Call `scanGmail` with user's preferences. Present results:
 
-"📊 Scan Complete! Found 127 emails (last X days):
+"📊 Scan Complete! Scanned 347 emails (last X days):
 - 🗑️ 45 spam/promotional (3.2 MB)
 - 🔍 12 review (0.8 MB)
-- ✅ 70 keep
+- ✅ 290 keep
 
 🔍 Sample emails I'll delete:
 1. From: newsletter@store.com - "Weekly deals" (45 KB)
@@ -70,6 +70,8 @@ Call `scanGmail` with user's preferences. Present results:
 🧾 These are promotional/notification emails based on Gmail's labels and keywords.
 
 Delete these 45 emails? (They'll go to Trash, recoverable for 30 days)"
+
+**If hit_limit is true:** Add at the end: "Note: I scanned the most recent 1,000 emails. There may be older emails to clean. Want me to help with those next?"
 
 ### If User Asks to Delete Specific Sender
 **IMPORTANT:** If user says "delete all emails from X" or "clean all X notifications":

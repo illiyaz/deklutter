@@ -93,6 +93,14 @@ paths:
                     items:
                       type: string
                     example: ["msg_id_4", "msg_id_5"]
+                  scanned_count:
+                    type: integer
+                    description: Total number of emails scanned
+                    example: 347
+                  hit_limit:
+                    type: boolean
+                    description: Whether the scan hit the maximum email limit (1000)
+                    example: false
                   samples:
                     type: object
                     description: Sample emails from each category for user preview
