@@ -191,6 +191,24 @@ MIT
 
 Contributions welcome! Please open an issue or PR.
 
+### Adding a New Email Provider
+
+Want to add Yahoo Mail, Outlook, or another provider? Follow our comprehensive guide:
+
+📖 **[ADDING_NEW_PROVIDER.md](ADDING_NEW_PROVIDER.md)** - 13-step checklist with code examples
+
+**Quick overview:**
+1. Add provider config to `services/connectors/provider_config.py`
+2. Create OAuth handler
+3. Create email connector
+4. Add API routes
+5. Update OpenAPI schema
+6. Update GPT instructions
+7. Write tests
+8. Deploy!
+
+See the full guide for detailed instructions and common pitfalls.
+
 ## 📧 Contact
 
 For questions or support, contact: mohammad.illiyaz@gmail.com
