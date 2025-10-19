@@ -29,12 +29,22 @@
 
 ## 📅 WEEK 1: Safety & Trust
 
-### ✅ Completed
-- [x] Show sample emails before deletion (Oct 19)
+### ✅ Completed (Oct 19, 2025)
+- [x] Show sample emails before deletion
 - [x] Add safety guardrails (protected domains, keywords)
 - [x] Improve GPT conversation flow (action-oriented)
 - [x] Prevent hallucination (fake features)
 - [x] Privacy policy page
+- [x] Better classification (trust Gmail categories 85%)
+- [x] Expanded protected domains (Indian services)
+- [x] Pagination & batch API (handle 10K+ emails)
+- [x] Retry logic with exponential backoff
+- [x] Circuit breaker pattern
+- [x] Provider-agnostic configuration system
+- [x] Comprehensive documentation (RESILIENCE.md, ADDING_NEW_PROVIDER.md)
+- [x] Enhanced health check endpoint
+- [x] Version endpoint
+- [x] Condensed GPT instructions (8,556 → 3,568 chars)
 
 ### 🔄 In Progress
 - [ ] Test classification thoroughly

@@ -24,3 +24,8 @@ google-api-python-client==2.148.0
 
 # Optional LLM
 openai==1.51.2
+
+# Testing
+pytest==8.3.3
+pytest-cov==5.0.0
+pytest-asyncio==0.24.0
