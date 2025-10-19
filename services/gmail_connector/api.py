@@ -9,23 +9,28 @@ from services.gmail_connector.oauth import _fernet, get_gmail_service
 from services.classifier.policy import classify_bulk
 from googleapiclient.errors import HttpError
 from services.gmail_connector.circuit_breaker import get_circuit_breaker, CircuitBreakerOpenError
+from services.connectors.provider_config import get_provider_config
 
 logger = logging.getLogger(__name__)
+
+# Load Gmail-specific configuration
+GMAIL_CONFIG = get_provider_config("gmail")
 
 # Get circuit breaker for Gmail API
 gmail_circuit_breaker = get_circuit_breaker(
     "gmail_api",
-    failure_threshold=5,  # Open after 5 failures
-    timeout=60,           # Wait 60s before retry
-    success_threshold=2   # Need 2 successes to close
+    failure_threshold=GMAIL_CONFIG.circuit_breaker_failure_threshold,
+    timeout=GMAIL_CONFIG.circuit_breaker_timeout,
+    success_threshold=GMAIL_CONFIG.circuit_breaker_success_threshold
 )
 
-# Gmail API rate limiting
-MAX_EMAILS_PER_SCAN = 1000  # Reasonable limit for user experience (can be increased)
-BATCH_SIZE = 100  # Gmail allows up to 100 in batch request
-RATE_LIMIT_DELAY = 0.1  # 100ms delay between batches to respect rate limits
-MAX_RETRIES = 3  # Number of retries for transient failures
-RETRY_DELAY = 2  # Seconds to wait between retries
+# Gmail API rate limiting (from provider config)
+MAX_EMAILS_PER_SCAN = GMAIL_CONFIG.max_emails_per_scan
+BATCH_SIZE = GMAIL_CONFIG.batch_size
+RATE_LIMIT_DELAY = GMAIL_CONFIG.rate_limit_delay
+MAX_RETRIES = GMAIL_CONFIG.max_retries
+RETRY_DELAY = GMAIL_CONFIG.retry_delay
+RETRY_STATUS_CODES = GMAIL_CONFIG.retry_on_status_codes
 
 def _retry_with_backoff(func, max_retries=MAX_RETRIES, operation_name="API call", use_circuit_breaker=True):
     """
@@ -48,8 +53,8 @@ def _retry_with_backoff(func, max_retries=MAX_RETRIES, operation_name="API call"
         except HttpError as e:
             status_code = e.resp.status
             
-            # Retry on transient errors (429, 500, 503)
-            if status_code in [429, 500, 503] and attempt < max_retries - 1:
+            # Retry on transient errors (configured per provider)
+            if status_code in RETRY_STATUS_CODES and attempt < max_retries - 1:
                 wait_time = RETRY_DELAY * (2 ** attempt)  # Exponential backoff
                 logger.warning(f"{operation_name} failed with {status_code}, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
                 time.sleep(wait_time)

@@ -138,6 +138,15 @@
 ## 📅 WEEK 4+: Expansion
 
 ### Multi-Provider Support
+
+**⚠️ IMPORTANT: When adding a new provider:**
+1. ✅ Add configuration to `services/connectors/provider_config.py`
+2. ✅ Run `./scripts/update_resilience_docs.sh` to generate docs
+3. ✅ Update `RESILIENCE.md` with generated content
+4. ✅ Test with provider-specific rate limits
+5. ✅ Update `GPT_INSTRUCTIONS.md` if needed
+
+**Providers to add:**
 - [ ] Yahoo Mail integration
 - [ ] Outlook/Microsoft 365 integration
 - [ ] Google Drive cleanup
