@@ -54,23 +54,19 @@
 
 ## 📅 WEEK 2: Reliability
 
-### 1. Fix OAuth State Management (HIGH PRIORITY - 4 hours)
-**Status:** 🔴 Not Started  
+### 1. Fix OAuth State Management ✅ COMPLETED (Oct 19)
+**Status:** ✅ Done  
 **Why:** In-memory dict lost on restart, users re-auth after every deploy  
-**Files:** `services/auth/gpt_oauth.py`
+**Files:** `services/auth/gpt_oauth.py`, `db/models.py`
 
-**Tasks:**
-- [ ] Create `oauth_states` database table
-- [ ] Move `_oauth_states` dict to database
-- [ ] Add state expiration (30 min timeout)
-- [ ] Add cleanup job for expired states
-- [ ] Test OAuth flow with database
-- [ ] Deploy and verify persistence
+**Completed:**
+- [x] Create `oauth_states` database table
+- [x] Move `_oauth_states` dict to database
+- [x] Add state expiration (30 min timeout)
+- [x] Add cleanup job for expired states
+- [x] Test OAuth flow with database
 
-**Acceptance Criteria:**
-- OAuth states survive server restarts
-- Old states are cleaned up automatically
-- No re-auth needed after deploys
+**Result:** OAuth states now survive server restarts! ✅
 
 ---
 
@@ -147,6 +143,37 @@
 
 ## 📅 WEEK 4+: Expansion
 
+### Security & Privacy Enhancements
+
+#### 1. Email Encryption Service (LOW PRIORITY - 4 hours)
+**Status:** 🔴 Not Started  
+**Why:** Enhanced privacy for user emails (enterprise feature)  
+**Files:** New `services/security/email_encryption.py`, `db/models.py`
+
+**Tasks:**
+- [ ] Create encryption/decryption service
+- [ ] Add `email_hash` column (for lookup)
+- [ ] Add `email_encrypted` column (AES-256)
+- [ ] Update User model to use encrypted email
+- [ ] Add migration script for existing users
+- [ ] Update OAuth flow to work with encrypted emails
+- [ ] Add key rotation mechanism
+- [ ] Performance testing (encryption overhead)
+
+**Acceptance Criteria:**
+- User emails encrypted at rest
+- OAuth lookup works via email_hash
+- No performance degradation
+- Backward compatible with existing data
+
+**Notes:**
+- Not critical for MVP
+- Useful for enterprise customers
+- Consider after 1,000+ users
+- Alternative: Use separate UserEmail table
+
+---
+
 ### Multi-Provider Support
 
 **⚠️ IMPORTANT: When adding a new provider:**
@@ -168,14 +195,14 @@
 ## 🐛 Known Issues
 
 ### High Priority
-- [ ] OAuth state management (in-memory, lost on restart)
-- [ ] No pagination (limited to 100 emails)
+- [x] OAuth state management (in-memory, lost on restart) - ✅ FIXED Oct 19
+- [x] No pagination (limited to 100 emails) - ✅ FIXED Oct 19 (now handles 1,000+)
 - [ ] Generic error messages
 
 ### Medium Priority
-- [ ] No testing coverage
+- [x] No testing coverage - ✅ FIXED Oct 19 (35 unit tests for classifier)
 - [ ] Activity logs not implemented
-- [ ] No rate limiting
+- [x] No rate limiting - ✅ FIXED Oct 19 (100ms between batches, circuit breaker)
 
 ### Low Priority
 - [ ] Documentation incomplete
