@@ -98,9 +98,27 @@ def apply_cleanup(user: CurrentUser, message_ids: list[str], mode: str, db: Sess
         for mid in message_ids:
             service.users().messages().trash(userId="me", id=mid).execute()
     else:
-        # label only
-        label_id = "Deklutter_Review"
-        # (for MVP: ensure label exists skipped)
+        # label only - create label if it doesn't exist
+        label_name = "Deklutter_Review"
+        
+        # Get existing labels
+        labels_response = service.users().labels().list(userId="me").execute()
+        existing_labels = {label['name']: label['id'] for label in labels_response.get('labels', [])}
+        
+        # Create label if it doesn't exist
+        if label_name not in existing_labels:
+            label_object = {
+                'name': label_name,
+                'labelListVisibility': 'labelShow',
+                'messageListVisibility': 'show'
+            }
+            created_label = service.users().labels().create(userId="me", body=label_object).execute()
+            label_id = created_label['id']
+            logger.info(f"Created label '{label_name}' with ID: {label_id}")
+        else:
+            label_id = existing_labels[label_name]
+        
+        # Apply label to messages
         for mid in message_ids:
             service.users().messages().modify(userId="me", id=mid, body={"addLabelIds":[label_id]}).execute()
 
