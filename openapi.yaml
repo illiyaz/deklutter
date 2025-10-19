@@ -8,7 +8,7 @@ info:
     email: mohammad.illiyaz@gmail.com
 
 servers:
-  - url: https://deklutter-api.onrender.com
+  - url: https://api.deklutter.co
     description: Production server
 
 paths:
