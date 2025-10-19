@@ -13,7 +13,7 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 
 from db.session import get_db
-from db.models import User, OAuthToken
+from db.models import User, OAuthToken, OAuthState
 from services.auth.oauth.handler import UnifiedOAuthHandler
 from services.auth.utils import create_access_token, create_refresh_token
 
@@ -22,8 +22,61 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# In-memory storage for OAuth state (in production, use Redis)
-_oauth_states = {}
+# Helper functions for database-backed OAuth state management
+def create_oauth_state(db: Session, state: str, provider: str, source: str, 
+                       gpt_state: str = None, gpt_redirect_uri: str = None,
+                       client_id: str = None) -> OAuthState:
+    """Create a new OAuth state in database"""
+    expires_at = datetime.utcnow() + timedelta(minutes=30)  # 30 min expiry
+    
+    oauth_state = OAuthState(
+        state=state,
+        provider=provider,
+        source=source,
+        redirect_uri=gpt_redirect_uri,
+        expires_at=expires_at
+    )
+    
+    db.add(oauth_state)
+    db.commit()
+    db.refresh(oauth_state)
+    
+    logger.info(f"Created OAuth state: {state} (expires in 30 min)")
+    return oauth_state
+
+
+def get_oauth_state(db: Session, state: str) -> Optional[OAuthState]:
+    """Get OAuth state from database"""
+    oauth_state = db.query(OAuthState).filter(
+        OAuthState.state == state,
+        OAuthState.expires_at > datetime.utcnow()  # Not expired
+    ).first()
+    
+    return oauth_state
+
+
+def delete_oauth_state(db: Session, state: str):
+    """Delete OAuth state from database"""
+    db.query(OAuthState).filter(OAuthState.state == state).delete()
+    db.commit()
+    logger.info(f"Deleted OAuth state: {state}")
+
+
+def cleanup_expired_states(db: Session):
+    """Clean up expired OAuth states (called periodically)"""
+    deleted = db.query(OAuthState).filter(
+        OAuthState.expires_at <= datetime.utcnow()
+    ).delete()
+    
+    if deleted > 0:
+        db.commit()
+        logger.info(f"Cleaned up {deleted} expired OAuth states")
+    
+    return deleted
+
+
+# In-memory storage for refresh tokens (TODO: move to Redis in production)
+_refresh_tokens = {}
 
 
 @router.get("/gpt/oauth/authorize")
@@ -32,7 +85,8 @@ def gpt_oauth_authorize(
     client_id: str,
     redirect_uri: str,
     scope: str = "",
-    state: str = ""
+    state: str = "",
+    db: Session = Depends(get_db)
 ):
     """
     GPT OAuth authorization endpoint.
@@ -41,14 +95,25 @@ def gpt_oauth_authorize(
     We redirect to Google OAuth, then back to GPT.
     """
     try:
-        # Store GPT's state and redirect_uri
+        # Clean up expired states first
+        cleanup_expired_states(db)
+        
+        # Generate unique session ID
         oauth_session_id = secrets.token_urlsafe(32)
-        _oauth_states[oauth_session_id] = {
-            "gpt_state": state,
-            "gpt_redirect_uri": redirect_uri,
-            "client_id": client_id,
-            "created_at": datetime.utcnow()
-        }
+        
+        # Store GPT's state and redirect_uri in DATABASE
+        # We'll store the full state string with gpt_state embedded
+        full_state = f"google:gpt:{oauth_session_id}:gptstate:{state}"
+        
+        create_oauth_state(
+            db=db,
+            state=full_state,
+            provider="google",
+            source="gpt",
+            gpt_state=state,
+            gpt_redirect_uri=redirect_uri,
+            client_id=client_id
+        )
         
         # Start Google OAuth flow with GPT-specific redirect URI
         handler = UnifiedOAuthHandler("google", "gpt")
@@ -61,7 +126,7 @@ def gpt_oauth_authorize(
         # Get auth URL - it will have state like "google:gpt:uuid"
         google_auth_url = handler.get_auth_url()
         
-        # Replace the handler's UUID with our session ID
+        # Replace the handler's UUID with our full state
         # Extract and decode the original state from URL
         import re
         from urllib.parse import unquote, quote
@@ -71,18 +136,17 @@ def gpt_oauth_authorize(
             encoded_original_state = state_match.group(1)
             original_state = unquote(encoded_original_state)
             
-            # Replace with our session ID as the state
-            new_state = f"google:gpt:{oauth_session_id}"
-            encoded_new_state = quote(new_state, safe='')
+            # Replace with our full state (includes gpt_state)
+            encoded_new_state = quote(full_state, safe='')
             
             google_auth_url = google_auth_url.replace(
                 f"state={encoded_original_state}", 
                 f"state={encoded_new_state}"
             )
             
-            logger.info(f"GPT OAuth: replaced state '{original_state}' with '{new_state}'")
+            logger.info(f"GPT OAuth: created state in DB (session: {oauth_session_id})")
         
-        logger.info(f"GPT OAuth authorize: redirecting to Google (session: {oauth_session_id})")
+        logger.info(f"GPT OAuth authorize: redirecting to Google")
         
         # Redirect user to Google OAuth
         return RedirectResponse(url=google_auth_url)
@@ -127,27 +191,27 @@ def gpt_oauth_callback(
         """, status_code=400)
     
     try:
-        # Parse state to get our session ID
-        # State format: google:gpt:oauth_session_id
-        parts = state.split(":")
-        if len(parts) != 3:
-            logger.error(f"Invalid state format: {state} (expected 3 parts, got {len(parts)})")
-            raise ValueError(f"Invalid state format: expected 3 parts, got {len(parts)}")
+        # Parse state - format: google:gpt:session_id:gptstate:original_gpt_state
+        logger.info(f"GPT OAuth callback received with state: {state}")
         
-        oauth_session_id = parts[2]
+        # Retrieve OAuth state from DATABASE
+        oauth_state_record = get_oauth_state(db, state)
         
-        logger.info(f"GPT OAuth callback received (session: {oauth_session_id})")
-        
-        # Retrieve GPT's original state and redirect_uri
-        session_data = _oauth_states.get(oauth_session_id)
-        if not session_data:
+        if not oauth_state_record:
+            logger.error(f"OAuth state not found or expired: {state}")
             raise ValueError("OAuth session not found or expired")
         
-        gpt_state = session_data["gpt_state"]
-        gpt_redirect_uri = session_data["gpt_redirect_uri"]
+        # Extract GPT's original state and redirect URI from database
+        gpt_redirect_uri = oauth_state_record.redirect_uri
         
-        # Clean up session
-        del _oauth_states[oauth_session_id]
+        # Extract gpt_state from the state string
+        parts = state.split(":gptstate:")
+        gpt_state = parts[1] if len(parts) > 1 else ""
+        
+        logger.info(f"Found OAuth state in DB, redirecting to: {gpt_redirect_uri}")
+        
+        # Clean up state from database
+        delete_oauth_state(db, state)
         
         # Handle Google OAuth callback with GPT-specific redirect URI
         handler = UnifiedOAuthHandler("google", "gpt")
@@ -171,9 +235,9 @@ def gpt_oauth_callback(
         access_token = create_access_token(token_data)
         refresh_token = create_refresh_token(token_data)
         
-        # Store refresh token in session for later use
-        # In production, store in Redis with user_id as key
-        _oauth_states[f"refresh_{user.id}"] = refresh_token
+        # Store refresh token in memory for later use
+        # TODO: Move to Redis in production
+        _refresh_tokens[f"refresh_{user.id}"] = refresh_token
         
         logger.info(f"GPT OAuth success for user: {user.email}")
         
@@ -229,7 +293,7 @@ def gpt_oauth_token(
         user_id = payload.get("sub")
         
         # Get refresh token from storage
-        refresh_token = _oauth_states.get(f"refresh_{user_id}", "")
+        refresh_token = _refresh_tokens.get(f"refresh_{user_id}", "")
         
         logger.info("GPT OAuth token exchange successful")
         
@@ -322,8 +386,8 @@ def gpt_oauth_revoke(
         db.query(OAuthToken).filter(OAuthToken.user_id == user_id).delete()
         
         # Clean up refresh token from memory
-        if f"refresh_{user_id}" in _oauth_states:
-            del _oauth_states[f"refresh_{user_id}"]
+        if f"refresh_{user_id}" in _refresh_tokens:
+            del _refresh_tokens[f"refresh_{user_id}"]
         
         db.commit()
         
@@ -334,3 +398,21 @@ def gpt_oauth_revoke(
     except Exception as e:
         logger.error(f"Revoke failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Revoke failed")
+
+
+@router.post("/gpt/oauth/cleanup")
+def cleanup_oauth_states_endpoint(db: Session = Depends(get_db)):
+    """
+    Cleanup expired OAuth states.
+    
+    Can be called manually or by a cron job.
+    """
+    try:
+        deleted = cleanup_expired_states(db)
+        return {
+            "message": f"Cleaned up {deleted} expired OAuth states",
+            "deleted_count": deleted
+        }
+    except Exception as e:
+        logger.error(f"Cleanup failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Cleanup failed")

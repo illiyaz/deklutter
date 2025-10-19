@@ -43,3 +43,14 @@ class ActivityLog(Base):
     details = Column(Text)                 # JSON with action details
     items_count = Column(Integer)          # number of items processed
     created_at = Column(DateTime, server_default=func.now(), index=True)
+
+class OAuthState(Base):
+    __tablename__ = "oauth_states"
+    id = Column(Integer, primary_key=True)
+    state = Column(String, unique=True, index=True)  # The OAuth state token
+    provider = Column(String)              # 'google', 'yahoo', etc.
+    source = Column(String)                # 'gpt', 'web', etc.
+    user_id = Column(Integer, nullable=True)  # Optional: if we know the user
+    redirect_uri = Column(String, nullable=True)  # Where to redirect after OAuth
+    expires_at = Column(DateTime, index=True)  # State expires after 30 minutes
+    created_at = Column(DateTime, server_default=func.now())
