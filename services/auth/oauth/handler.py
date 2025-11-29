@@ -238,9 +238,9 @@ class UnifiedOAuthHandler:
             return f"https://chat.openai.com/aip/oauth/callback?token={jwt_token}&state={session_id}"
         
         elif source == "web":
-            # For webapp, redirect to dashboard
+            # For webapp, redirect to callback page which will handle token storage
             webapp_url = os.getenv("WEBAPP_URL", "http://localhost:3000")
-            return f"{webapp_url}/dashboard?token={jwt_token}"
+            return f"{webapp_url}/callback?token={jwt_token}"
         
         elif source == "mobile":
             # For mobile, use deep link
