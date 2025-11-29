@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mail, Trash2, AlertCircle, Check, Loader2, LogOut, RefreshCw } from 'lucide-react'
 
-const API_URL = 'https://api.deklutter.co'
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.deklutter.co'
 
 export default function Dashboard() {
   const navigate = useNavigate()

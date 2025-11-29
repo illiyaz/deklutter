@@ -1,6 +1,6 @@
 import { Mail, Trash2, Sparkles, Shield, Zap, Check } from 'lucide-react'
 
-const API_URL = 'https://api.deklutter.co'
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.deklutter.co'
 
 export default function LandingPage() {
   const handleGetStarted = async () => {
