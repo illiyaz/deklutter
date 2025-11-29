@@ -23,6 +23,8 @@ from services.gateway.error_handlers import (
     gmail_api_exception_handler,
     generic_exception_handler
 )
+from services.gateway.rate_limiter import limiter, rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(
@@ -88,11 +90,15 @@ else:
 
 logger.info("Starting Deklutter API...")
 
+# Add rate limiter state to app
+app.state.limiter = limiter
+
 # Register exception handlers
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
 app.add_exception_handler(HttpError, gmail_api_exception_handler)
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # Add CORS middleware

@@ -1,9 +1,10 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from services.gateway.deps import get_current_user, CurrentUser
 from services.gmail_connector.oauth import get_google_auth_url, exchange_code_store_tokens
 from services.gmail_connector.api import scan_recent, apply_cleanup
+from services.gateway.rate_limiter import limiter
 from pydantic import BaseModel
 from db.session import get_db
 from sqlalchemy.orm import Session
@@ -194,7 +195,9 @@ def gmail_status(
     }
 
 @router.post("/gmail/scan")
+@limiter.limit("5/minute")  # Max 5 scans per minute
 def gmail_scan(
+    request: Request,
     req: ScanRequest, 
     user: CurrentUser = Depends(get_current_user), 
     db: Session = Depends(get_db)
@@ -221,7 +224,9 @@ def gmail_scan(
         )
 
 @router.post("/gmail/apply")
+@limiter.limit("10/minute")  # Max 10 cleanup operations per minute
 def gmail_apply(
+    request: Request,
     req: ApplyRequest, 
     user: CurrentUser = Depends(get_current_user), 
     db: Session = Depends(get_db)
