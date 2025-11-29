@@ -18,6 +18,7 @@ paths:
       summary: Scan Gmail inbox for unwanted emails
       description: Analyzes the user's Gmail inbox and classifies emails into categories (delete, review, keep). Returns statistics and email IDs for each category. User must have completed OAuth authorization first.
       security:
+        - BearerAuth: []
         - DeklutterOAuth: []
       requestBody:
         required: true
@@ -162,6 +163,7 @@ paths:
       summary: Revoke Gmail access and delete all user data
       description: Completely removes Deklutter's access to user's Gmail. Deletes all stored tokens and data. User can re-authorize later if needed.
       security:
+        - BearerAuth: []
         - DeklutterOAuth: []
       responses:
         '200':
@@ -189,6 +191,7 @@ paths:
       summary: Apply cleanup actions to Gmail
       description: Moves specified emails to trash or applies labels. Emails moved to trash can be recovered for 30 days. User must have completed OAuth authorization first.
       security:
+        - BearerAuth: []
         - DeklutterOAuth: []
       requestBody:
         required: true
@@ -239,11 +242,17 @@ components:
   schemas: {}
   
   securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained after OAuth authorization. Use /start to get your token.
+    
     DeklutterOAuth:
       type: oauth2
       flows:
         authorizationCode:
-          authorizationUrl: https://deklutter-api.onrender.com/auth/gpt/oauth/authorize
-          tokenUrl: https://deklutter-api.onrender.com/auth/gpt/oauth/token
+          authorizationUrl: https://api.deklutter.co/auth/gpt/oauth/authorize
+          tokenUrl: https://api.deklutter.co/auth/gpt/oauth/token
           scopes: {}
-      description: OAuth 2.0 authorization for accessing user's Gmail through Deklutter
+      description: OAuth 2.0 authorization for ChatGPT GPT integration
