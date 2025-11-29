@@ -27,6 +27,9 @@ export default function Dashboard() {
     setError(null)
     
     try {
+      console.log('Scanning with API URL:', API_URL)
+      console.log('Token:', token ? 'Present' : 'Missing')
+      
       const response = await fetch(`${API_URL}/gmail/scan`, {
         method: 'POST',
         headers: {
@@ -39,15 +42,19 @@ export default function Dashboard() {
         })
       })
 
+      console.log('Response status:', response.status)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Scan failed')
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        throw new Error(errorData.message || `Scan failed with status ${response.status}`)
       }
 
       const data = await response.json()
+      console.log('Scan results:', data)
       setResults(data)
     } catch (err) {
-      setError(err.message)
+      console.error('Scan error:', err)
+      setError(err.message || 'Network error. Please check your connection.')
     } finally {
       setScanning(false)
     }
