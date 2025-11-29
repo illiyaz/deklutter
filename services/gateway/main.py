@@ -146,25 +146,47 @@ def health():
     """Health check endpoint for monitoring"""
     import time
     from db.session import SessionLocal
+    from sqlalchemy import text
     
     # Check database connection
     db_healthy = False
+    db_error = None
+    tables_exist = False
+    
     try:
         db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
+        # Test basic query
+        db.execute(text("SELECT 1"))
         db_healthy = True
+        
+        # Check if tables exist
+        result = db.execute(text("""
+            SELECT COUNT(*) 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name IN ('users', 'oauth_tokens', 'mail_decision_logs')
+        """))
+        count = result.scalar()
+        tables_exist = (count >= 3)
+        
+        db.close()
     except Exception as e:
+        db_error = str(e)
         logger.error(f"Database health check failed: {e}")
     
     return {
-        "status": "healthy" if db_healthy else "degraded",
+        "status": "healthy" if (db_healthy and tables_exist) else "degraded",
         "version": "1.0.0",
         "timestamp": int(time.time()),
         "services": {
             "database": "healthy" if db_healthy else "unhealthy",
-            "api": "healthy"
-        }
+            "api": "healthy",
+            "tables": "created" if tables_exist else "missing"
+        },
+        "debug": {
+            "db_error": db_error,
+            "tables_exist": tables_exist
+        } if db_error or not tables_exist else None
     }
 
 @app.get("/debug/files")
