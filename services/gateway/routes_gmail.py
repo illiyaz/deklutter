@@ -79,12 +79,63 @@ def auth_google_callback(
             </body></html>
             """, status_code=400)
         
-        return HTMLResponse("""
-        <html><body style="font-family: sans-serif; padding: 40px; text-align: center;">
-        <h1 style="color: green;">✅ Authorization Successful!</h1>
-        <p>You can now close this window and run the Gmail scan.</p>
-        <p>Go back to your terminal and choose option 3 to scan your Gmail.</p>
-        </body></html>
+        # Generate JWT token for the user
+        from services.auth.utils import create_access_token
+        jwt_token = create_access_token({"user_id": user.user_id, "email": user.email})
+        
+        return HTMLResponse(f"""
+        <html>
+        <head>
+            <title>Authorization Successful</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }}
+                h1 {{ color: #16a34a; }}
+                .success {{ background: #dcfce7; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+                .token-box {{ background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0; word-break: break-all; font-family: monospace; font-size: 12px; }}
+                .copy-btn {{ background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }}
+                .copy-btn:hover {{ background: #5568d3; }}
+                .instructions {{ background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b; }}
+            </style>
+        </head>
+        <body>
+            <h1>✅ Authorization Successful!</h1>
+            <div class="success">
+                <p>You've successfully connected <strong>Gmail</strong>!</p>
+                <p>👋 Welcome back!</p>
+            </div>
+            
+            <div class="instructions">
+                <h3>📋 Next Steps:</h3>
+                <ol>
+                    <li>Copy your JWT token below</li>
+                    <li>Go to <a href="https://api.deklutter.co/docs" target="_blank">API Docs</a></li>
+                    <li>Click "Authorize" and paste your token</li>
+                    <li>Try the <code>/gmail/scan</code> endpoint!</li>
+                </ol>
+            </div>
+            
+            <h3>🔑 Your JWT Token:</h3>
+            <div class="token-box" id="token">{jwt_token}</div>
+            <button class="copy-btn" onclick="copyToken()">📋 Copy Token</button>
+            
+            <p style="margin-top: 30px; color: #666; font-size: 14px;">
+                <strong>Note:</strong> This token expires in 24 hours. Keep it safe and don't share it!
+            </p>
+            
+            <script>
+                function copyToken() {{
+                    const token = document.getElementById('token').textContent;
+                    navigator.clipboard.writeText(token).then(() => {{
+                        const btn = document.querySelector('.copy-btn');
+                        btn.textContent = '✅ Copied!';
+                        setTimeout(() => {{
+                            btn.textContent = '📋 Copy Token';
+                        }}, 2000);
+                    }});
+                }}
+            </script>
+        </body>
+        </html>
         """)
     except Exception as e:
         logger.error(f"OAuth callback error for user {user_email}: {str(e)}", exc_info=True)
