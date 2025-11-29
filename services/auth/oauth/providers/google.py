@@ -153,12 +153,12 @@ class GoogleOAuthProvider(BaseOAuthProvider):
             return False
     
     def get_default_scopes(self) -> List[str]:
-        """Get default Google OAuth scopes"""
+        """Get default Google OAuth scopes - minimal permissions"""
         return [
-            "https://www.googleapis.com/auth/gmail.readonly",
-            "https://www.googleapis.com/auth/gmail.modify",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile"
+            "https://www.googleapis.com/auth/gmail.readonly",   # Read emails for scanning
+            "https://www.googleapis.com/auth/gmail.modify",     # Trash/label emails
+            "https://www.googleapis.com/auth/userinfo.email"    # Get user email (for account identification)
+            # Note: userinfo.profile removed - we don't need name/photo
         ]
     
     def _get_category(self) -> str:
