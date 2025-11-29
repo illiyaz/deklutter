@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Gmail Scan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 { color: #2563eb; }
+        button {
+            background: #2563eb;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f3f4f6;
+        }
+        .loading { color: #f59e0b; }
+        .success { color: #16a34a; background: #dcfce7; }
+        .error { color: #dc2626; background: #fee2e2; }
+        .results {
+            margin-top: 20px;
+        }
+        .category {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #e5e7eb;
+        }
+        .delete { border-color: #dc2626; background: #fef2f2; }
+        .review { border-color: #f59e0b; background: #fffbeb; }
+        .keep { border-color: #16a34a; background: #f0fdf4; }
+        .email-sample {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📧 Test Gmail Scan</h1>
+    
+    <div style="margin-bottom: 20px;">
+        <label><strong>JWT Token:</strong></label><br>
+        <input type="text" id="token" placeholder="Paste your JWT token here" style="width: 100%; padding: 10px; margin: 10px 0; font-family: monospace;">
+        <p style="color: #6b7280; font-size: 14px;">
+            💡 After OAuth, check the URL for <code>?token=...</code> and paste it here.
+        </p>
+    </div>
+    
+    <div>
+        <label>Scan last: </label>
+        <button onclick="scanInbox(7)">7 days</button>
+        <button onclick="scanInbox(30)">30 days</button>
+        <button onclick="scanInbox(90)">90 days</button>
+    </div>
+    
+    <div id="status" class="status" style="display: none;"></div>
+    <div id="results" class="results"></div>
+    
+    <script>
+        const API_URL = 'https://nonvitrified-flourishingly-shalon.ngrok-free.dev';
+        
+        // Auto-detect token from URL on page load
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            if (token) {
+                document.getElementById('token').value = token;
+                document.getElementById('status').style.display = 'block';
+                document.getElementById('status').className = 'status success';
+                document.getElementById('status').innerHTML = '✅ Token detected! You can now scan your inbox.';
+            }
+        };
+        
+        async function scanInbox(days) {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            const token = document.getElementById('token').value.trim();
+            
+            if (!token) {
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Please paste your JWT token first!';
+                return;
+            }
+            
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status loading';
+            statusDiv.innerHTML = `⏳ Scanning last ${days} days... This may take a minute.`;
+            resultsDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_URL}/gmail/scan`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        days_back: days,
+                        max_results: 100
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `✅ Scan complete! Found ${data.scanned_count} emails.`;
+                
+                displayResults(data);
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const summary = data.summary;
+            
+            let html = `
+                <div class="summary">
+                    <div class="stat-card delete">
+                        <div>🗑️ Delete</div>
+                        <div class="stat-number">${summary.counts.delete}</div>
+                        <div>${summary.size_by_category.delete_mb.toFixed(1)} MB</div>
+                    </div>
+                    <div class="stat-card review">
+                        <div>👀 Review</div>
+                        <div class="stat-number">${summary.counts.review}</div>
+                        <div>${summary.size_by_category.review_mb.toFixed(1)} MB</div>
+                    </div>
+                    <div class="stat-card keep">
+                        <div>✅ Keep</div>
+                        <div class="stat-number">${summary.counts.keep}</div>
+                        <div>${summary.size_by_category.keep_mb.toFixed(1)} MB</div>
+                    </div>
+                </div>
+                
+                <h3>📊 Total: ${data.scanned_count} emails scanned, ~${summary.approx_size_mb.toFixed(1)} MB</h3>
+            `;
+            
+            // Show samples for each category
+            if (data.samples.delete && data.samples.delete.length > 0) {
+                html += `
+                    <div class="category delete">
+                        <h3>🗑️ Safe to Delete (${summary.counts.delete} emails)</h3>
+                        ${data.samples.delete.map(email => `
+                            <div class="email-sample">
+                                <strong>From:</strong> ${email.from}<br>
+                                <strong>Subject:</strong> ${email.subject}<br>
+                                <strong>Date:</strong> ${email.date} | <strong>Size:</strong> ${email.size_kb} KB
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            if (data.samples.review && data.samples.review.length > 0) {
+                html += `
+                    <div class="category review">
+                        <h3>👀 Review First (${summary.counts.review} emails)</h3>
+                        ${data.samples.review.map(email => `
+                            <div class="email-sample">
+                                <strong>From:</strong> ${email.from}<br>
+                                <strong>Subject:</strong> ${email.subject}<br>
+                                <strong>Date:</strong> ${email.date} | <strong>Size:</strong> ${email.size_kb} KB
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            if (data.samples.keep && data.samples.keep.length > 0) {
+                html += `
+                    <div class="category keep">
+                        <h3>✅ Keep (${summary.counts.keep} emails)</h3>
+                        ${data.samples.keep.map(email => `
+                            <div class="email-sample">
+                                <strong>From:</strong> ${email.from}<br>
+                                <strong>Subject:</strong> ${email.subject}<br>
+                                <strong>Date:</strong> ${email.date} | <strong>Size:</strong> ${email.size_kb} KB
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

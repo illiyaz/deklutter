@@ -10,7 +10,7 @@
 
 **Status:** ✅ Live in Production
 **Timeline:** Completed
-**URL:** https://deklutter-api.onrender.com
+**URL:** https://api.deklutter.co
 
 ### Features
 - ✅ Gmail OAuth integration
@@ -326,7 +326,8 @@ Want to help build Deklutter? Here's how:
 
 - **Email:** mohammad.illiyaz@gmail.com
 - **GitHub:** https://github.com/illiyaz/deklutter
-- **API:** https://deklutter-api.onrender.com
+- **API:** https://api.deklutter.co
+- **Docs:** https://api.deklutter.co/docs
 
 ---
 

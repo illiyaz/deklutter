@@ -1,9 +1,12 @@
 
 import os
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
 from db.session import Base, engine
 from db import models  # Import models so they're registered with Base
@@ -13,6 +16,13 @@ from services.gateway.routes_oauth import router as oauth_router
 from services.gateway.routes_stats import router as stats_router
 from services.auth.routes import router as auth_router
 from services.auth.gpt_oauth import router as gpt_oauth_router
+from services.gateway.error_handlers import (
+    validation_exception_handler,
+    http_exception_handler,
+    sqlalchemy_exception_handler,
+    gmail_api_exception_handler,
+    generic_exception_handler
+)
 
 # Configure logging
 logging.basicConfig(
@@ -77,6 +87,13 @@ else:
     app = FastAPI(title="Deklutter API", version="0.1.0")
 
 logger.info("Starting Deklutter API...")
+
+# Register exception handlers
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(HttpError, gmail_api_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 # Add CORS middleware
 app.add_middleware(

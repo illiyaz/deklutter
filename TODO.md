@@ -15,7 +15,7 @@
   - [ ] Check for false positives
   - [ ] Test protected domains (banks, gov, healthcare)
   - [ ] Test important keywords (receipt, invoice, booking)
-- [ ] Set privacy policy URL: `https://deklutter-api.onrender.com/privacy`
+- [x] Set privacy policy URL: `https://api.deklutter.co/privacy`
 - [ ] Share with 2-3 friends for beta testing
 - [ ] Document issues and feedback
 
