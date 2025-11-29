@@ -103,12 +103,28 @@ def root():
             a { color: #2563eb; text-decoration: none; }
             a:hover { text-decoration: underline; }
             .endpoint { background: #f3f4f6; padding: 10px; margin: 10px 0; border-radius: 5px; }
+            .cta-button { 
+                display: inline-block;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 30px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+            .cta-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            }
         </style>
     </head>
     <body>
         <h1>📧 Deklutter API</h1>
         <p class="status">✅ Status: Online</p>
         <p>AI-powered Gmail inbox cleaner - Automatically identify and remove spam, newsletters, and promotional emails.</p>
+        
+        <a href="/start" class="cta-button">🚀 Get Started</a>
         
         <h2>🚀 Quick Links</h2>
         <div class="endpoint">
@@ -127,9 +143,7 @@ def root():
         
         <h2>📖 API Endpoints</h2>
         <ul>
-            <li><code>POST /auth/signup</code> - Create account</li>
-            <li><code>POST /auth/login</code> - Login</li>
-            <li><code>POST /auth/google/init</code> - Initialize Gmail OAuth</li>
+            <li><code>POST /oauth/google/init</code> - Initialize Gmail OAuth</li>
             <li><code>POST /gmail/scan</code> - Scan Gmail inbox</li>
             <li><code>POST /gmail/apply</code> - Apply cleanup</li>
         </ul>
@@ -140,6 +154,36 @@ def root():
     </body>
     </html>
     """
+
+@app.get("/start", response_class=HTMLResponse)
+async def start():
+    """Get started page - initiates OAuth flow"""
+    import httpx
+    
+    # Call the OAuth init endpoint
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                "https://api.deklutter.co/oauth/google/init?source=web"
+            )
+            data = response.json()
+            auth_url = data.get("auth_url", "")
+            
+            # Redirect to Google OAuth
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url=auth_url)
+            
+        except Exception as e:
+            return f"""
+            <html>
+            <head><title>Error</title></head>
+            <body style="font-family: Arial; padding: 40px; text-align: center;">
+                <h1>❌ Error</h1>
+                <p>Failed to initialize OAuth: {str(e)}</p>
+                <p><a href="/">Go back</a></p>
+            </body>
+            </html>
+            """
 
 @app.get("/health")
 def health():

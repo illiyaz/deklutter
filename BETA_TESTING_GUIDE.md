@@ -21,14 +21,20 @@ Deklutter automatically scans your Gmail inbox and identifies:
 
 ### **Step 1: Connect Your Gmail**
 
-Visit: https://api.deklutter.co/oauth/google/init?source=web
+**Option A: Use the Beta Testing Page (Easiest)**
 
-1. Click the link above
-2. Copy the `auth_url` from the JSON response
-3. Open that URL in your browser
-4. Sign in with Google
-5. Grant permissions (read & modify Gmail)
-6. You'll be redirected back
+Open the `beta_tester.html` file in your browser and click "Connect Gmail"
+
+**Option B: Use API Docs**
+
+1. Go to: https://api.deklutter.co/docs
+2. Find the `/oauth/google/init` endpoint
+3. Click "Try it out"
+4. Set `source` to `web`
+5. Click "Execute"
+6. Copy the `auth_url` from the response
+7. Open that URL in your browser
+8. Sign in with Google and grant permissions
 
 **Note:** Use an **incognito/private window** to avoid cached sessions.
 
