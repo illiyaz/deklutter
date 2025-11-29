@@ -101,13 +101,14 @@ app.add_exception_handler(HttpError, gmail_api_exception_handler)
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# Add CORS middleware
+# Add CORS middleware - MUST be before exception handlers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins for testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # create tables on boot (for dev)

@@ -143,7 +143,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     
     return JSONResponse(
         status_code=exc.status_code,
-        content=get_user_friendly_error(error_code, detail if detail != error_code else None)
+        content=get_user_friendly_error(error_code, detail if detail != error_code else None),
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
@@ -152,7 +156,11 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=get_user_friendly_error("database_error", "Database operation failed")
+        content=get_user_friendly_error("database_error", "Database operation failed"),
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 async def gmail_api_exception_handler(request: Request, exc: HttpError):
@@ -174,7 +182,11 @@ async def gmail_api_exception_handler(request: Request, exc: HttpError):
     
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content=get_user_friendly_error(error_code, f"Gmail API returned {status_code}")
+        content=get_user_friendly_error(error_code, f"Gmail API returned {status_code}"),
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
 
 async def generic_exception_handler(request: Request, exc: Exception):
@@ -183,5 +195,9 @@ async def generic_exception_handler(request: Request, exc: Exception):
     
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=get_user_friendly_error("internal_error", str(exc))
+        content=get_user_friendly_error("internal_error", str(exc)),
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
     )
