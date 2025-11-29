@@ -146,6 +146,28 @@ def auth_google_callback(
         </body></html>
         """, status_code=500)
 
+@router.get("/gmail/status")
+def gmail_status(
+    user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Check if Gmail is connected for the current user"""
+    from db.models import OAuthToken
+    from datetime import datetime
+    
+    token = db.query(OAuthToken).filter(
+        OAuthToken.user_id == user.user_id,
+        OAuthToken.provider == "google"
+    ).first()
+    
+    return {
+        "user_id": user.user_id,
+        "email": user.email,
+        "gmail_connected": token is not None,
+        "token_exists": token is not None,
+        "token_expired": token.expiry < datetime.utcnow() if token else None
+    }
+
 @router.post("/gmail/scan")
 def gmail_scan(
     req: ScanRequest, 
