@@ -2,6 +2,7 @@
 import os
 import logging
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 from db.session import Base, engine
@@ -76,6 +77,15 @@ else:
     app = FastAPI(title="Deklutter API", version="0.1.0")
 
 logger.info("Starting Deklutter API...")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for testing
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # create tables on boot (for dev)
 Base.metadata.create_all(bind=engine)
