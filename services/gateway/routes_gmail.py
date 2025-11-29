@@ -153,8 +153,25 @@ def gmail_scan(
     db: Session = Depends(get_db)
 ):
     """Scan Gmail inbox - requires authentication"""
-    result = scan_recent(user, req.days_back, req.limit, db)
-    return result
+    try:
+        result = scan_recent(user, req.days_back, req.limit, db)
+        return result
+    except Exception as e:
+        logger.error(f"Gmail scan failed for user {user.email}: {str(e)}", exc_info=True)
+        from fastapi import HTTPException
+        
+        # Check if it's an OAuth issue
+        if "No OAuth token" in str(e) or "credentials" in str(e).lower():
+            raise HTTPException(
+                status_code=403,
+                detail="Gmail not authorized. Please visit /start to connect your Gmail account."
+            )
+        
+        # Generic error
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scan failed: {str(e)}"
+        )
 
 @router.post("/gmail/apply")
 def gmail_apply(
