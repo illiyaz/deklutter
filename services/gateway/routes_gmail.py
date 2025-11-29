@@ -146,6 +146,31 @@ def auth_google_callback(
         </body></html>
         """, status_code=500)
 
+@router.post("/debug/reset-user")
+def reset_user(
+    user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete current user and all their data - for testing only"""
+    from db.models import OAuthToken, MailDecisionLog, ActivityLog
+    
+    # Delete all user data
+    db.query(OAuthToken).filter(OAuthToken.user_id == user.user_id).delete()
+    db.query(MailDecisionLog).filter(MailDecisionLog.user_id == user.user_id).delete()
+    db.query(ActivityLog).filter(ActivityLog.user_id == user.user_id).delete()
+    
+    # Delete user
+    from db.models import User
+    db.query(User).filter(User.id == user.user_id).delete()
+    
+    db.commit()
+    
+    return {
+        "message": "User deleted successfully",
+        "user_id": user.user_id,
+        "email": user.email
+    }
+
 @router.get("/gmail/status")
 def gmail_status(
     user: CurrentUser = Depends(get_current_user),
