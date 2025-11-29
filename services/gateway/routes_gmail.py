@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import List
 
 from services.gateway.rate_limiter import limiter
-from services.auth.dependencies import get_current_user, CurrentUser
+from services.gateway.deps import get_current_user, CurrentUser
 from services.gmail_connector.oauth import get_google_auth_url, exchange_code_store_tokens
 from services.gmail_connector.api import scan_recent, apply_cleanup
 from db.session import get_db
