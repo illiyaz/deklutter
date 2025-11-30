@@ -175,8 +175,9 @@ export default function LandingPage() {
         {/* Footer */}
         <footer className="mt-20 pt-8 border-t border-gray-200 text-center text-gray-600">
           <div className="flex justify-center space-x-6 mb-4">
-            <a href={`${API_URL}/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition">Privacy Policy</a>
-            <a href={`${API_URL}/terms`} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition">Terms of Service</a>
+            <a href="/privacy" className="hover:text-blue-600 transition">Privacy Policy</a>
+            <a href="/terms" className="hover:text-blue-600 transition">Terms of Service</a>
+            <a href="mailto:support@deklutter.co" className="hover:text-blue-600 transition">Contact</a>
             <a href="https://github.com/illiyaz/deklutter" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition">GitHub</a>
           </div>
           <p className="text-sm">© 2025 Deklutter. All rights reserved.</p>
